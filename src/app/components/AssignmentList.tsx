@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft, User } from 'lucide-react';
 
-interface Assignment {
+export interface Assignment {
   id: string;
   title: string;
   subject: string;
@@ -10,6 +10,10 @@ interface Assignment {
   year: number;
   dueDate: string;
   type: string;
+  fileName: string;
+  fileSize: string;
+  storageProvider: 'Google Drive' | 'Local';
+  fileUrl?: string;
   uploadedBy: string;
   uploadedAt: string;
   viewCount: number;
@@ -20,84 +24,104 @@ interface AssignmentListProps {
   onShowForm: () => void;
 }
 
+// モックデータ
+export const assignmentMocks: Assignment[] = [
+  {
+    id: '1',
+    title: 'データ構造とアルゴリズムのレポート課題',
+    subject: 'データ構造とアルゴリズム',
+    area: '情報',
+    semester: '前期',
+    year: 2025,
+    dueDate: '2026-01-25',
+    type: 'レポート',
+    fileName: 'report_datastructures.pdf',
+    fileSize: '1.2MB',
+    storageProvider: 'Google Drive',
+    fileUrl: '',
+    uploadedBy: '山田太郎',
+    uploadedAt: '2026-01-10',
+    viewCount: 156,
+  },
+  {
+    id: '2',
+    title: '有機化学実験レポート',
+    subject: '有機化学実験',
+    area: '化学',
+    semester: '後期',
+    year: 2024,
+    dueDate: '2025-12-20',
+    type: 'レポート',
+    fileName: 'organic_lab_report.docx',
+    fileSize: '840KB',
+    storageProvider: 'Google Drive',
+    fileUrl: '',
+    uploadedBy: '佐藤花子',
+    uploadedAt: '2025-12-05',
+    viewCount: 89,
+  },
+  {
+    id: '3',
+    title: '英語プレゼンテーション課題',
+    subject: '学術英語II',
+    area: '英語',
+    semester: '前期',
+    year: 2025,
+    dueDate: '2026-01-30',
+    type: 'プレゼンテーション',
+    fileName: 'english_presentation.pptx',
+    fileSize: '5.6MB',
+    storageProvider: 'Google Drive',
+    fileUrl: '',
+    uploadedBy: '鈴木一郎',
+    uploadedAt: '2026-01-08',
+    viewCount: 124,
+  },
+  {
+    id: '4',
+    title: '物理学演習問題集',
+    subject: '物理学I',
+    area: '物理',
+    semester: '前期',
+    year: 2025,
+    dueDate: '2026-02-05',
+    type: '演習問題',
+    fileName: 'physics_exercises.pdf',
+    fileSize: '2.4MB',
+    storageProvider: 'Google Drive',
+    fileUrl: '',
+    uploadedBy: '田中次郎',
+    uploadedAt: '2026-01-12',
+    viewCount: 203,
+  },
+  {
+    id: '5',
+    title: '経済学レポート：市場分析',
+    subject: 'ミクロ経済学',
+    area: '経済',
+    semester: '後期',
+    year: 2024,
+    dueDate: '2025-12-15',
+    type: 'レポート',
+    fileName: 'microeconomics_market_analysis.pdf',
+    fileSize: '1.8MB',
+    storageProvider: 'Google Drive',
+    fileUrl: '',
+    uploadedBy: '高橋美咲',
+    uploadedAt: '2025-11-28',
+    viewCount: 167,
+  },
+];
+
 export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
 
-  // モックデータ
-  const assignments: Assignment[] = [
-    {
-      id: '1',
-      title: 'データ構造とアルゴリズムのレポート課題',
-      subject: 'データ構造とアルゴリズム',
-      area: '情報',
-      semester: '前期',
-      year: 2025,
-      dueDate: '2026-01-25',
-      type: 'レポート',
-      uploadedBy: '山田太郎',
-      uploadedAt: '2026-01-10',
-      viewCount: 156,
-    },
-    {
-      id: '2',
-      title: '有機化学実験レポート',
-      subject: '有機化学実験',
-      area: '化学',
-      semester: '後期',
-      year: 2024,
-      dueDate: '2025-12-20',
-      type: 'レポート',
-      uploadedBy: '佐藤花子',
-      uploadedAt: '2025-12-05',
-      viewCount: 89,
-    },
-    {
-      id: '3',
-      title: '英語プレゼンテーション課題',
-      subject: '学術英語II',
-      area: '英語',
-      semester: '前期',
-      year: 2025,
-      dueDate: '2026-01-30',
-      type: 'プレゼンテーション',
-      uploadedBy: '鈴木一郎',
-      uploadedAt: '2026-01-08',
-      viewCount: 124,
-    },
-    {
-      id: '4',
-      title: '物理学演習問題集',
-      subject: '物理学I',
-      area: '物理',
-      semester: '前期',
-      year: 2025,
-      dueDate: '2026-02-05',
-      type: '演習問題',
-      uploadedBy: '田中次郎',
-      uploadedAt: '2026-01-12',
-      viewCount: 203,
-    },
-    {
-      id: '5',
-      title: '経済学レポート：市場分析',
-      subject: 'ミクロ経済学',
-      area: '経済',
-      semester: '後期',
-      year: 2024,
-      dueDate: '2025-12-15',
-      type: 'レポート',
-      uploadedBy: '高橋美咲',
-      uploadedAt: '2025-11-28',
-      viewCount: 167,
-    },
-  ];
-
   const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
   const semesters = ['all', '春学期', '秋学期'];
 
-  const filteredAssignments = assignments.filter((assignment) => {
+  const filteredAssignments = assignmentMocks.filter((assignment) => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          assignment.subject.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesArea = selectedArea === 'all' || assignment.area === selectedArea;
