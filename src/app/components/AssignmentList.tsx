@@ -94,7 +94,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
     },
   ];
 
-  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
   const semesters = ['all', '春学期', '秋学期'];
 
   const filteredAssignments = assignments.filter((assignment) => {
