@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Header } from '@/app/components/Header';
 import { LoginPage } from '@/app/components/LoginPage';
-import { TermsOfService } from '@/app/components/TermsOfService';
 import { HomePage } from '@/app/components/HomePage';
 import { TestList } from '@/app/components/TestList';
 import { TestDetail } from '@/app/components/TestDetail';
@@ -9,6 +8,7 @@ import { TestForm } from '@/app/components/TestForm';
 import { AssignmentList } from '@/app/components/AssignmentList';
 import { AssignmentDetail } from '@/app/components/AssignmentDetail';
 import { AssignmentForm } from '@/app/components/AssignmentForm';
+import { AdminPage } from '@/app/components/AdminPage';
 
 type Page = 
   | 'login'
@@ -18,18 +18,19 @@ type Page =
   | 'test-form'
   | 'assignment-list' 
   | 'assignment-detail' 
-  | 'assignment-form';
+  | 'assignment-form'
+  | 'admin';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [showTerms, setShowTerms] = useState(false);
+  const [returnPage, setReturnPage] = useState<Page>('home');
   const [username, setUsername] = useState('');
   const [selectedTestId, setSelectedTestId] = useState('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
 
   const handleLogin = (name: string) => {
-    setUsername(name);
-    setCurrentPage('home');
+    setUsername('管理者');
+    setCurrentPage('admin');
   };
 
   const handleLogout = () => {
@@ -38,6 +39,9 @@ export default function App() {
   };
 
   const handleNavigate = (page: Page, id?: string) => {
+    if (page === 'login') {
+      setReturnPage(currentPage);
+    }
     if (page === 'test-detail' && id) {
       setSelectedTestId(id);
     } else if (page === 'assignment-detail' && id) {
@@ -54,16 +58,12 @@ export default function App() {
           username={username} 
           onLogout={handleLogout}
           onLogin={() => handleNavigate('login')}
+          onAdminNavigate={() => handleNavigate('admin')}
         />
       )}
 
-      {showTerms && <TermsOfService onClose={() => setShowTerms(false)} />}
-
       {currentPage === 'login' && (
-        <LoginPage 
-          onLogin={handleLogin} 
-          onShowTerms={() => setShowTerms(true)}
-        />
+        <LoginPage onLogin={handleLogin} />
       )}
 
       {currentPage === 'home' && (
@@ -104,6 +104,10 @@ export default function App() {
 
       {currentPage === 'assignment-form' && (
         <AssignmentForm onNavigate={handleNavigate} />
+      )}
+
+      {currentPage === 'admin' && (
+        <AdminPage onBack={() => handleNavigate(returnPage)} />
       )}
     </div>
   );

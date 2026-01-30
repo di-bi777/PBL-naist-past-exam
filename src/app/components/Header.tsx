@@ -5,9 +5,10 @@ interface HeaderProps {
   username?: string;
   onLogout?: () => void;
   onLogin?: () => void;
+  onAdminNavigate?: () => void;
 }
 
-export function Header({ isLoggedIn, username, onLogout, onLogin }: HeaderProps) {
+export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigate }: HeaderProps) {
   return (
     <header className="border-b bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,10 +21,14 @@ export function Header({ isLoggedIn, username, onLogout, onLogin }: HeaderProps)
           <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <>
-                <div className="flex items-center gap-2 text-gray-700">
+                <button
+                  type="button"
+                  onClick={onAdminNavigate}
+                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors"
+                >
                   <User className="w-5 h-5" />
                   <span className="text-sm">{username}</span>
-                </div>
+                </button>
                 <button
                   onClick={onLogout}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
