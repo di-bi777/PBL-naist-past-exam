@@ -94,8 +94,8 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
     },
   ];
 
-  const areas = ['all', '数学', '情報', '物理', '化学', '生物', '英語', '経済', '法学', '文学'];
-  const semesters = ['all', '前期', '後期', '通年'];
+  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const semesters = ['all', '春学期', '秋学期'];
 
   const filteredAssignments = assignments.filter((assignment) => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
