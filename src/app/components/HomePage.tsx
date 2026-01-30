@@ -68,7 +68,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         {/* 統計情報 */}
-        <div className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto">
+        <div className="mt-16 grid grid-cols-2 gap-6 max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow p-6 text-center">
             <div className="text-3xl font-bold text-blue-600 mb-2">248</div>
             <div className="text-sm text-gray-600">登録過去問</div>
@@ -76,10 +76,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <div className="bg-white rounded-xl shadow p-6 text-center">
             <div className="text-3xl font-bold text-green-600 mb-2">142</div>
             <div className="text-sm text-gray-600">課題情報</div>
-          </div>
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">1,523</div>
-            <div className="text-sm text-gray-600">アクティブユーザー</div>
           </div>
         </div>
       </div>
