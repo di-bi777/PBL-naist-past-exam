@@ -21,7 +21,7 @@ type Page =
   | 'assignment-form';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('login');
+  const [currentPage, setCurrentPage] = useState<Page>('home');
   const [showTerms, setShowTerms] = useState(false);
   const [username, setUsername] = useState('');
   const [selectedTestId, setSelectedTestId] = useState('');
@@ -34,7 +34,7 @@ export default function App() {
 
   const handleLogout = () => {
     setUsername('');
-    setCurrentPage('login');
+    setCurrentPage('home');
   };
 
   const handleNavigate = (page: Page, id?: string) => {
@@ -50,9 +50,10 @@ export default function App() {
     <div className="size-full">
       {currentPage !== 'login' && (
         <Header 
-          isLoggedIn={true} 
+          isLoggedIn={Boolean(username)}
           username={username} 
           onLogout={handleLogout}
+          onLogin={() => handleNavigate('login')}
         />
       )}
 
