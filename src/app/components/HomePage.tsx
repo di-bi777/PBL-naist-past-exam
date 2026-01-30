@@ -1,7 +1,7 @@
 import { FileText, ClipboardList, Plus } from 'lucide-react';
 
 interface HomePageProps {
-  onNavigate: (page: 'test-list' | 'assignment-list') => void;
+  onNavigate: (page: 'test-list' | 'test-form' | 'assignment-list' | 'assignment-form') => void;
 }
 
 export function HomePage({ onNavigate }: HomePageProps) {
@@ -31,7 +31,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 過去問を閲覧
               </button>
               <button
-                onClick={() => onNavigate('test-list')}
+                onClick={() => onNavigate('test-form')}
                 className="w-full border-2 border-blue-600 text-blue-600 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
@@ -57,7 +57,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 課題を閲覧
               </button>
               <button
-                onClick={() => onNavigate('assignment-list')}
+                onClick={() => onNavigate('assignment-form')}
                 className="w-full border-2 border-green-600 text-green-600 py-3 rounded-lg font-medium hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />

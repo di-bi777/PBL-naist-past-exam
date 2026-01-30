@@ -22,6 +22,7 @@ type Page =
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [previousPage, setPreviousPage] = useState<Page | null>(null);
   const [showTerms, setShowTerms] = useState(false);
   const [username, setUsername] = useState('');
   const [selectedTestId, setSelectedTestId] = useState('');
@@ -42,6 +43,10 @@ export default function App() {
       setSelectedTestId(id);
     } else if (page === 'assignment-detail' && id) {
       setSelectedAssignmentId(id);
+    }
+    // フォームページに遷移する場合は前のページを記憶
+    if (page === 'test-form' || page === 'assignment-form') {
+      setPreviousPage(currentPage);
     }
     setCurrentPage(page);
   };
@@ -85,7 +90,10 @@ export default function App() {
       )}
 
       {currentPage === 'test-form' && (
-        <TestForm onNavigate={handleNavigate} />
+        <TestForm 
+          onNavigate={handleNavigate}
+          previousPage={previousPage || 'test-list'}
+        />
       )}
 
       {currentPage === 'assignment-list' && (
@@ -103,7 +111,10 @@ export default function App() {
       )}
 
       {currentPage === 'assignment-form' && (
-        <AssignmentForm onNavigate={handleNavigate} />
+        <AssignmentForm 
+          onNavigate={handleNavigate}
+          previousPage={previousPage || 'assignment-list'}
+        />
       )}
     </div>
   );
