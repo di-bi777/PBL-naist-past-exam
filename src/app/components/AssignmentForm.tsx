@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 
 interface AssignmentFormProps {
-  onNavigate: (page: 'assignment-list') => void;
+  onNavigate: (page: 'assignment-list' | 'home') => void;
+  previousPage: 'assignment-list' | 'home';
 }
 
-export function AssignmentForm({ onNavigate }: AssignmentFormProps) {
+export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     subject: '',
@@ -41,7 +42,7 @@ export function AssignmentForm({ onNavigate }: AssignmentFormProps) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ヘッダー */}
         <button
-          onClick={() => onNavigate('assignment-list')}
+          onClick={() => onNavigate(previousPage)}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -267,7 +268,7 @@ export function AssignmentForm({ onNavigate }: AssignmentFormProps) {
             <div className="flex gap-4 pt-6">
               <button
                 type="button"
-                onClick={() => onNavigate('assignment-list')}
+                onClick={() => onNavigate(previousPage)}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
                 キャンセル
