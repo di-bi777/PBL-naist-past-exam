@@ -94,8 +94,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
     },
   ];
 
-  const areas = ['all', '数学', '情報', '物理', '化学', '生物', '英語'];
-  const semesters = ['all', '前期', '後期', '通年'];
+  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const semesters = ['all', '春学期', '秋学期'];
 
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

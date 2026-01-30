@@ -32,8 +32,8 @@ export function TestForm({ onNavigate }: TestFormProps) {
     setFormData({ ...formData, [field]: value });
   };
 
-  const areas = ['数学', '情報', '物理', '化学', '生物', '英語', '経済', '法学', '文学', 'その他'];
-  const semesters = ['前期', '後期', '通年', '集中'];
+  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const semesters = ['春学期', '秋学期'];
 
   return (
     <div className="min-h-screen bg-gray-50">
