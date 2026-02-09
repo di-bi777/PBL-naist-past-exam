@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { User, Lock } from 'lucide-react';
+import { User, Lock, ArrowLeft } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: (username: string) => void;
+  onBack: () => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, onBack }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -19,6 +20,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          戻る
+        </button>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
             <User className="w-8 h-8 text-white" />
