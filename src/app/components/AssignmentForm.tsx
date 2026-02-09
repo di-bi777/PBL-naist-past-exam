@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { useState, ChangeEvent } from 'react';
+import { ArrowLeft, Save, Upload, Loader2 } from 'lucide-react';
 
 interface AssignmentFormProps {
   onNavigate: (page: 'assignment-list' | 'home') => void;
@@ -7,71 +7,123 @@ interface AssignmentFormProps {
 }
 
 export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // 必要な情報のみに絞ったState
   const [formData, setFormData] = useState({
-    title: '',
-    subject: '',
-    area: '',
-    semester: '',
-    year: new Date().getFullYear(),
-    professor: '',
-    type: '',
-    dueDate: '',
-    submissionMethod: '',
-    pageRequirement: '',
-    description: '',
-    content: '',
-    tips: '',
+    subject: '',        // 科目名
+    area: '',           // 領域
+    semester: '',       // 開講期
+    year: new Date().getFullYear(), // 年度
+    lectureNumber: '',  // 第何回講義
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const semesters = ['春学期', '秋学期'];
+
+  // GASのエンドポイント
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwE2UDkDMSLXeBb8CeHIzVfGHPGJF_le79zqwhliyOgAsOw2CCUdQ0PhzKU7y4UHK8/exec';
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('課題を登録しました');
-    onNavigate('assignment-list');
+    if (!file) {
+      alert('ファイルをアップロードしてください');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const base64Content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const res = reader.result as string;
+          resolve(res.split(',')[1]);
+        };
+        reader.onerror = reject;
+      });
+
+      // --- ファイル名の自動生成ロジック (課題用) ---
+      // 形式: 領域名_科目名_第X回_課題.拡張子
+      const extension = file.name.split('.').pop();
+      // lectureNumberが数字だけの場合は「第〇回」を付与、すでに文字が含まれる場合はそのまま結合するなど調整可能
+      // ここでは入力値をそのまま使用し、ファイル名生成時に「第」「回」を付与します
+      const generatedFileName = `${formData.area}_${formData.subject}_第${formData.lectureNumber}回_課題.${extension}`;
+
+      const payload = {
+        ...formData,
+        fileData: base64Content,
+        fileName: generatedFileName, // 生成したファイル名をセット
+        mimeType: file.type,
+        type: '課題', // スプレッドシート側で判別できるようにタイプを固定
+      };
+
+      const response = await fetch(GAS_ENDPOINT, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert(`課題を登録しました\n保存名: ${generatedFileName}`);
+        onNavigate('assignment-list');
+      } else {
+        throw new Error('送信に失敗しました');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('エラーが発生しました');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleChange = (field: string, value: string | number) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['春学期', '秋学期'];
-  const types = ['レポート', 'プレゼンテーション', '演習問題', 'プログラミング課題', 'グループワーク', 'その他'];
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="relative min-h-screen bg-gray-50">
+      {/* --- 全画面ローディングオーバーレイ --- */}
+      {isUploading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center">
+            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+            <p className="text-lg font-bold text-gray-800">課題データを送信中...</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {formData.area}_{formData.subject}_第{formData.lectureNumber}回_課題 として保存しています
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* ヘッダー */}
         <button
           onClick={() => onNavigate(previousPage)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+          disabled={isUploading}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 disabled:opacity-50"
         >
           <ArrowLeft className="w-5 h-5" />
           キャンセル
         </button>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">課題を登録</h1>
-          <p className="text-gray-600 mb-8">できるだけ詳細に情報を入力してください</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">課題を登録</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* 基本情報 */}
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">基本情報</h2>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  タイトル <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleChange('title', e.target.value)}
-                  placeholder="例：データ構造とアルゴリズムのレポート課題"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                  required
-                />
-              </div>
-
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -82,22 +134,31 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     value={formData.subject}
                     onChange={(e) => handleChange('subject', e.target.value)}
                     placeholder="例：データ構造とアルゴリズム"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
                     required
+                    disabled={isUploading}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    担当教員
+                    第何回講義 <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.professor}
-                    onChange={(e) => handleChange('professor', e.target.value)}
-                    placeholder="例：佐藤教授"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 font-medium">第</span>
+                    <input
+                      type="number"
+                      value={formData.lectureNumber}
+                      onChange={(e) => handleChange('lectureNumber', e.target.value)}
+                      placeholder="1"
+                      min="1"
+                      max="15"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100 text-center"
+                      required
+                      disabled={isUploading}
+                    />
+                    <span className="text-gray-600 font-medium">回</span>
+                  </div>
                 </div>
               </div>
 
@@ -109,8 +170,9 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                   <select
                     value={formData.area}
                     onChange={(e) => handleChange('area', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
                     required
+                    disabled={isUploading}
                   >
                     <option value="">選択してください</option>
                     {areas.map((area) => (
@@ -126,8 +188,9 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                   <select
                     value={formData.semester}
                     onChange={(e) => handleChange('semester', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
                     required
+                    disabled={isUploading}
                   >
                     <option value="">選択してください</option>
                     {semesters.map((semester) => (
@@ -146,121 +209,46 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     onChange={(e) => handleChange('year', parseInt(e.target.value))}
                     min="2000"
                     max="2030"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
                     required
+                    disabled={isUploading}
                   />
                 </div>
               </div>
             </div>
 
-            {/* 課題詳細 */}
+            {/* 添付ファイル */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">課題詳細</h2>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    課題タイプ <span className="text-red-500">*</span>
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">課題ファイル</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ファイル（PDF, 写真, コードなど） <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center justify-center w-full">
+                  <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${file ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                      <Upload className={`w-8 h-8 mb-2 ${file ? 'text-blue-500' : 'text-gray-400'}`} />
+                      <p className="text-sm text-gray-600 truncate max-w-xs">
+                        {file ? file.name : "クリックしてファイルをアップロード"}
+                      </p>
+                      {/* 保存名のプレビュー */}
+                      {file && !isUploading && (
+                        <p className="text-xs text-blue-500 mt-2 font-medium">
+                          保存名: {formData.area || "領域"}_{formData.subject || "科目"}_第{formData.lectureNumber || "X"}回_課題
+                        </p>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={handleFileChange} 
+                      // PDF, 画像, 一般的なコードファイルを許可
+                      accept=".pdf,image/*,.c,.cpp,.py,.java,.js,.ts,.html,.css,.txt,.zip" 
+                      required 
+                      disabled={isUploading}
+                    />
                   </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => handleChange('type', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                    required
-                  >
-                    <option value="">選択してください</option>
-                    {types.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    提出期限 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) => handleChange('dueDate', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  提出方法
-                </label>
-                <input
-                  type="text"
-                  value={formData.submissionMethod}
-                  onChange={(e) => handleChange('submissionMethod', e.target.value)}
-                  placeholder="例：オンライン提出（学習管理システム）"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  分量・形式
-                </label>
-                <input
-                  type="text"
-                  value={formData.pageRequirement}
-                  onChange={(e) => handleChange('pageRequirement', e.target.value)}
-                  placeholder="例：A4用紙3〜5枚"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  概要
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleChange('description', e.target.value)}
-                  placeholder="課題の概要を簡潔に説明してください"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* 課題内容 */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">課題内容</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  詳細内容 <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => handleChange('content', e.target.value)}
-                  placeholder="課題の詳細内容、評価基準、注意事項などを記入してください"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
-                  rows={12}
-                  required
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  ※ 課題の要件、評価基準、注意点などを詳しく記入してください
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ヒントとアドバイス
-                </label>
-                <textarea
-                  value={formData.tips}
-                  onChange={(e) => handleChange('tips', e.target.value)}
-                  placeholder="課題に取り組む際のヒントやアドバイスを記入してください"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
-                  rows={4}
-                />
               </div>
             </div>
 
@@ -269,16 +257,27 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
               <button
                 type="button"
                 onClick={() => onNavigate(previousPage)}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                disabled={isUploading}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                disabled={isUploading}
+                className="flex-[2] px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-blue-400 flex items-center justify-center gap-2 transition-all"
               >
-                <Save className="w-5 h-5" />
-                登録する
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    送信中...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    登録する
+                  </>
+                )}
               </button>
             </div>
           </form>
