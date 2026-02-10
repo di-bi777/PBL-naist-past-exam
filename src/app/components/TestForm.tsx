@@ -22,7 +22,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
   const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
   const semesters = ['春学期', '秋学期'];
 
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwE2UDkDMSLXeBb8CeHIzVfGHPGJF_le79zqwhliyOgAsOw2CCUdQ0PhzKU7y4UHK8/exec';
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyN0uT9L2It9wF0_CXQRYL1UdC9S9nd0sel7eTfwhIhjrRrABidlD2HlXtUmXzo0wP0/exec';
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,17 +57,20 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
 
       const payload = {
         ...formData,
+        term: formData.semester,
+        instructor: formData.professor,
         fileData: base64Content,
         fileName: generatedFileName, // 自動生成した名前をセット
         mimeType: file.type,
       };
 
-      const response = await fetch(GAS_ENDPOINT, {
+      const response = await fetch(`${GAS_ENDPOINT}?path=upload_exam`, {
         method: 'POST',
+        mode: 'no-cors',
         body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
+      if (response.type === 'opaque' || response.ok) {
         alert(`過去問を登録しました\n保存名: ${generatedFileName}`);
         onNavigate('test-list');
       } else {
