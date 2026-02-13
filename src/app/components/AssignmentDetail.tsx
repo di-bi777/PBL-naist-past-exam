@@ -1,13 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Calendar, BookOpen, FileText, User, Clock, AlertCircle, MessageCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, User, AlertCircle } from 'lucide-react';
 import { getAreaLabel, getTermLabel } from '../constants/options';
-
-interface Comment {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: string;
-}
 
 interface AssignmentDetailProps {
   assignmentId: string;
@@ -15,8 +7,6 @@ interface AssignmentDetailProps {
 }
 
 export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailProps) {
-  const [commentText, setCommentText] = useState('');
-
   // モックデータ
   const assignment = {
     id: assignmentId,
@@ -27,12 +17,10 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
     year: 2025,
     professor: '佐藤教授',
     type: 'レポート',
-    dueDate: '2026-01-25',
     submissionMethod: 'オンライン提出（学習管理システム）',
     pageRequirement: 'A4用紙3〜5枚',
     uploadedBy: '山田太郎',
     uploadedAt: '2026-01-10',
-    viewCount: 156,
     description: 'データ構造とアルゴリズムに関するレポート課題です。特定のアルゴリズムを選択し、その効率性について分析します。',
     content: `
 【課題内容】
@@ -64,34 +52,6 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
 - 図や表を適切に使用すること
     `,
     tips: '過去の受講生からのアドバイス：教科書の該当章をしっかり読み込むことが重要です。特に計算量の証明は詳しく書くと評価が高くなります。また、実装例は実際に動作確認をしてから記載することをお勧めします。',
-  };
-
-  const comments: Comment[] = [
-    {
-      id: '1',
-      author: '鈴木一郎',
-      content: 'マージソートを選択しました。再帰的な実装の説明に時間がかかりましたが、図を使って説明すると分かりやすくなりました。',
-      timestamp: '2026-01-12 15:20',
-    },
-    {
-      id: '2',
-      author: '田中次郎',
-      content: '計算量の証明は教科書だけでなく、論文も参照すると良いです。参考文献を多く挙げると評価が上がります。',
-      timestamp: '2026-01-13 10:45',
-    },
-    {
-      id: '3',
-      author: '高橋美咲',
-      content: 'Pythonでの実装例を載せましたが、擬似コードの方が良かったかもしれません。コメントをしっかり書くことが大切です。',
-      timestamp: '2026-01-14 18:30',
-    },
-  ];
-
-  const handleCommentSubmit = () => {
-    if (commentText.trim()) {
-      setCommentText('');
-      alert('コメントを投稿しました');
-    }
   };
 
   return (
@@ -149,20 +109,11 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
               </div>
             </div>
 
-            {/* 提出期限 */}
-            <div className="ml-6 bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
-              <div className="text-sm text-green-700 font-medium mb-2">提出期限</div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Calendar className="w-5 h-5 text-green-700" />
-                <div className="text-2xl font-bold text-green-900">{assignment.dueDate}</div>
-              </div>
-            </div>
           </div>
 
           {/* 投稿者情報 */}
-          <div className="pt-6 border-t flex items-center justify-between text-sm text-gray-500">
+          <div className="pt-6 border-t text-sm text-gray-500">
             <div>投稿者: {assignment.uploadedBy} | 投稿日: {assignment.uploadedAt}</div>
-            <div>{assignment.viewCount}回閲覧</div>
           </div>
         </div>
 
@@ -193,53 +144,6 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
           </div>
         )}
 
-        {/* コメントセクション */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            コメント ({comments.length})
-          </h2>
-
-          {/* コメント入力 */}
-          <div className="mb-6">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="コメントを入力..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none resize-none"
-              rows={3}
-            />
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handleCommentSubmit}
-                disabled={!commentText.trim()}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                投稿
-              </button>
-            </div>
-          </div>
-
-          {/* コメント一覧 */}
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="border-t pt-4">
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900">{comment.author}</span>
-                      <span className="text-xs text-gray-500">{comment.timestamp}</span>
-                    </div>
-                    <p className="text-gray-700">{comment.content}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

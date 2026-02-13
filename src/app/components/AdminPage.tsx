@@ -176,6 +176,20 @@ export function AdminPage({ onBack }: AdminPageProps) {
                     </div>
 
                     <div className="flex flex-col items-end gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
+                        >
+                          承認
+                        </button>
+                        <button
+                          type="button"
+                          className="text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+                        >
+                          拒否
+                        </button>
+                      </div>
                       {file.webViewLink ? (
                         <a
                           href={file.webViewLink}

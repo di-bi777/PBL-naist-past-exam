@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, Plus, ThumbsUp, ThumbsDown, Calendar, BookOpen, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Calendar, BookOpen, ArrowLeft } from 'lucide-react';
 import { areaOptions, termOptions, getAreaLabel, getTermLabel } from '../constants/options';
 
 interface Test {
@@ -9,9 +9,6 @@ interface Test {
   area: string;
   semester: string;
   year: number;
-  upvotes: number;
-  downvotes: number;
-  commentCount: number;
   uploadedBy: string;
   uploadedAt: string;
 }
@@ -35,9 +32,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       area: 'mat',
       semester: 'spring',
       year: 2025,
-      upvotes: 42,
-      downvotes: 3,
-      commentCount: 8,
       uploadedBy: '山田太郎',
       uploadedAt: '2026-01-10',
     },
@@ -48,9 +42,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       area: 'mat',
       semester: 'fall',
       year: 2024,
-      upvotes: 35,
-      downvotes: 2,
-      commentCount: 5,
       uploadedBy: '佐藤花子',
       uploadedAt: '2025-12-15',
     },
@@ -61,9 +52,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       area: 'cs',
       semester: 'spring',
       year: 2025,
-      upvotes: 58,
-      downvotes: 1,
-      commentCount: 12,
       uploadedBy: '鈴木一郎',
       uploadedAt: '2026-01-08',
     },
@@ -74,9 +62,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       area: 'mat',
       semester: 'fall',
       year: 2024,
-      upvotes: 28,
-      downvotes: 4,
-      commentCount: 6,
       uploadedBy: '田中次郎',
       uploadedAt: '2025-11-20',
     },
@@ -87,9 +72,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       area: 'bio',
       semester: 'spring',
       year: 2025,
-      upvotes: 31,
-      downvotes: 2,
-      commentCount: 4,
       uploadedBy: '高橋美咲',
       uploadedAt: '2026-01-05',
     },
@@ -219,21 +201,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-3 ml-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-green-600">
-                      <ThumbsUp className="w-5 h-5" />
-                      <span className="font-medium">{test.upvotes}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-red-600">
-                      <ThumbsDown className="w-5 h-5" />
-                      <span className="font-medium">{test.downvotes}</span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {test.commentCount}件のコメント
-                  </div>
-                </div>
               </div>
             </div>
           ))}

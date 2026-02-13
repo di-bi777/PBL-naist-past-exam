@@ -9,7 +9,6 @@ export interface Assignment {
   area: string;
   semester: string;
   year: number;
-  dueDate: string;
   type: string;
   fileName: string;
   fileSize: string;
@@ -17,7 +16,6 @@ export interface Assignment {
   fileUrl?: string;
   uploadedBy: string;
   uploadedAt: string;
-  viewCount: number;
 }
 
 interface AssignmentListProps {
@@ -34,7 +32,6 @@ export const assignmentMocks: Assignment[] = [
     area: 'cs',
     semester: 'spring',
     year: 2025,
-    dueDate: '2026-01-25',
     type: 'レポート',
     fileName: 'report_datastructures.pdf',
     fileSize: '1.2MB',
@@ -42,7 +39,6 @@ export const assignmentMocks: Assignment[] = [
     fileUrl: '',
     uploadedBy: '山田太郎',
     uploadedAt: '2026-01-10',
-    viewCount: 156,
   },
   {
     id: '2',
@@ -51,7 +47,6 @@ export const assignmentMocks: Assignment[] = [
     area: 'bio',
     semester: 'fall',
     year: 2024,
-    dueDate: '2025-12-20',
     type: 'レポート',
     fileName: 'organic_lab_report.docx',
     fileSize: '840KB',
@@ -59,7 +54,6 @@ export const assignmentMocks: Assignment[] = [
     fileUrl: '',
     uploadedBy: '佐藤花子',
     uploadedAt: '2025-12-05',
-    viewCount: 89,
   },
   {
     id: '3',
@@ -68,7 +62,6 @@ export const assignmentMocks: Assignment[] = [
     area: 'cs',
     semester: 'spring',
     year: 2025,
-    dueDate: '2026-01-30',
     type: 'プレゼンテーション',
     fileName: 'english_presentation.pptx',
     fileSize: '5.6MB',
@@ -76,7 +69,6 @@ export const assignmentMocks: Assignment[] = [
     fileUrl: '',
     uploadedBy: '鈴木一郎',
     uploadedAt: '2026-01-08',
-    viewCount: 124,
   },
   {
     id: '4',
@@ -85,7 +77,6 @@ export const assignmentMocks: Assignment[] = [
     area: 'mat',
     semester: 'spring',
     year: 2025,
-    dueDate: '2026-02-05',
     type: '演習問題',
     fileName: 'physics_exercises.pdf',
     fileSize: '2.4MB',
@@ -93,7 +84,6 @@ export const assignmentMocks: Assignment[] = [
     fileUrl: '',
     uploadedBy: '田中次郎',
     uploadedAt: '2026-01-12',
-    viewCount: 203,
   },
   {
     id: '5',
@@ -102,7 +92,6 @@ export const assignmentMocks: Assignment[] = [
     area: 'bio',
     semester: 'fall',
     year: 2024,
-    dueDate: '2025-12-15',
     type: 'レポート',
     fileName: 'microeconomics_market_analysis.pdf',
     fileSize: '1.8MB',
@@ -110,7 +99,6 @@ export const assignmentMocks: Assignment[] = [
     fileUrl: '',
     uploadedBy: '高橋美咲',
     uploadedAt: '2025-11-28',
-    viewCount: 167,
   },
 ];
 
@@ -249,15 +237,6 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-3 ml-6">
-                  <div className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
-                    <div className="font-medium">提出期限</div>
-                    <div className="text-gray-900 font-bold">{assignment.dueDate}</div>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {assignment.viewCount}回閲覧
-                  </div>
-                </div>
               </div>
             </div>
           ))}
