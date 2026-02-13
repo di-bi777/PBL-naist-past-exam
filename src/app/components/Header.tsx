@@ -1,14 +1,13 @@
-import { BookOpen, User, LogOut, LogIn } from 'lucide-react';
+import { BookOpen, User, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   isLoggedIn: boolean;
   username?: string;
   onLogout?: () => void;
-  onLogin?: () => void;
   onAdminNavigate?: () => void;
 }
 
-export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigate }: HeaderProps) {
+export function Header({ isLoggedIn, username, onLogout, onAdminNavigate }: HeaderProps) {
   return (
     <header className="border-b bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,6 +29,7 @@ export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigat
                   <span className="text-sm">{username}</span>
                 </button>
                 <button
+                  type="button"
                   onClick={onLogout}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -37,15 +37,7 @@ export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigat
                   ログアウト
                 </button>
               </>
-            ) : (
-              <button
-                onClick={onLogin}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <LogIn className="w-4 h-4" />
-                ログイン
-              </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

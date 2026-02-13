@@ -63,7 +63,6 @@ export default function App() {
           isLoggedIn={Boolean(username)}
           username={username} 
           onLogout={handleLogout}
-          onLogin={() => handleNavigate('login')}
           onAdminNavigate={() => handleNavigate('admin')}
         />
       )}
@@ -73,7 +72,11 @@ export default function App() {
       )}
 
       {currentPage === 'home' && (
-        <HomePage onNavigate={handleNavigate} />
+        <HomePage
+          onNavigate={handleNavigate}
+          onAdminLogin={() => handleNavigate('login')}
+          isLoggedIn={Boolean(username)}
+        />
       )}
 
       {currentPage === 'test-list' && (
