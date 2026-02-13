@@ -133,7 +133,16 @@ export default function App() {
       )}
 
       <Routes>
-        <Route path="/" element={<HomePage onNavigate={(page) => handleNavigate(page)} />} />
+        <Route
+          path="/"
+          element={
+            <HomePage
+              onNavigate={(page) => handleNavigate(page)}
+              onAdminLogin={() => handleNavigate('login')}
+              isLoggedIn={Boolean(username)}
+            />
+          }
+        />
         <Route
           path="/login"
           element={
