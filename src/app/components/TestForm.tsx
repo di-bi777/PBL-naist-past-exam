@@ -4,8 +4,8 @@ import { areaOptions, termOptions, allowedMaterialOptions, getAreaLabel } from '
 import { GAS_ENDPOINT } from '../constants/gas';
 
 interface TestFormProps {
-  onNavigate: (page: 'test-list') => void;
-  previousPage: 'assignment-list' | 'home';
+  onNavigate: (page: 'test-list' | 'home') => void;
+  previousPage: 'test-list' | 'home';
 }
 
 export function TestForm({ onNavigate, previousPage }: TestFormProps) {
