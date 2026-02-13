@@ -16,6 +16,8 @@ type DriveFile = {
 };
 
 const GAS_DRIVE_ENDPOINT = import.meta.env.VITE_GAS_DRIVE_ENDPOINT as string | undefined;
+const GAS_APPROVE_ENDPOINT = import.meta.env.VITE_GAS_APPROVE_ENDPOINT as string | undefined;
+const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
 
 const formatBytes = (bytes?: string) => {
   if (!bytes) return '—';
@@ -43,6 +45,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [driveStatus, setDriveStatus] = useState<'idle' | 'loading' | 'ready' | 'error' | 'missing'>('idle');
   const [driveError, setDriveError] = useState<string>('');
   const [driveRaw, setDriveRaw] = useState<string>('');
+  const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -93,6 +96,49 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return 'Google Drive 連携の初期化中です。';
   }, [driveFiles.length, driveStatus]);
 
+  const handleApprove = async (file: DriveFile) => {
+    if (!GAS_APPROVE_ENDPOINT) {
+      alert('承認エンドポイントが未設定です。VITE_GAS_APPROVE_ENDPOINT を確認してください。');
+      return;
+    }
+
+    setApprovingFileIds((prev) => [...prev, file.id]);
+    try {
+      const url = `${GAS_APPROVE_ENDPOINT}${GAS_APPROVE_ENDPOINT.includes('?') ? '&' : '?'}path=approve_pending_file`;
+      const response = await fetch(url, {
+        method: 'POST',
+        // Apps Script Web App への JSON POST は preflight で失敗しやすいため simple request で送信。
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          fileId: file.id,
+          approvedFolderId: APPROVED_FOLDER_ID,
+        }),
+      });
+
+      const text = await response.text();
+      let result: { status?: string; message?: string } | null = null;
+      if (text) {
+        try {
+          result = JSON.parse(text) as { status?: string; message?: string };
+        } catch {
+          result = null;
+        }
+      }
+
+      if (!response.ok || (result?.status && result.status !== 'success')) {
+        throw new Error(result?.message || text || '承認処理に失敗しました');
+      }
+
+      setDriveFiles((prev) => prev.filter((f) => f.id !== file.id));
+      alert(`承認しました: ${file.name}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '不明なエラーが発生しました';
+      alert(`承認に失敗しました: ${message}`);
+    } finally {
+      setApprovingFileIds((prev) => prev.filter((id) => id !== file.id));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -118,6 +164,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <summary className="cursor-pointer select-none">実行ログ</summary>
             <div className="mt-2 space-y-2">
               <div>エンドポイント: {GAS_DRIVE_ENDPOINT ?? '未設定'}</div>
+              <div>承認エンドポイント: {GAS_APPROVE_ENDPOINT ?? '未設定'}</div>
               <div>ステータス: {driveStatus}</div>
               {driveError && <div>エラー: {driveError}</div>}
               <div>応答サンプル: {driveRaw ? driveRaw : '（空）'}</div>
@@ -179,9 +226,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => handleApprove(file)}
+                          disabled={approvingFileIds.includes(file.id)}
                           className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
                         >
-                          承認
+                          {approvingFileIds.includes(file.id) ? '承認中...' : '承認'}
                         </button>
                         <button
                           type="button"
