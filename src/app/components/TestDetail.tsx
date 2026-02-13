@@ -1,13 +1,4 @@
-import { useState } from 'react';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, User, Calendar, BookOpen, FileText, AlertCircle } from 'lucide-react';
-
-interface Comment {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: string;
-  upvotes: number;
-}
+import { ArrowLeft, User, Calendar, BookOpen, FileText, AlertCircle } from 'lucide-react';
 
 interface TestDetailProps {
   testId: string;
@@ -15,9 +6,6 @@ interface TestDetailProps {
 }
 
 export function TestDetail({ testId, onNavigate }: TestDetailProps) {
-  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
-  const [commentText, setCommentText] = useState('');
-  
   // モックデータ
   const test = {
     id: testId,
@@ -30,8 +18,6 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
     examDate: '2025年7月15日',
     duration: '90分',
     allowedMaterials: '電卓、A4用紙1枚（両面可）',
-    upvotes: 42,
-    downvotes: 3,
     uploadedBy: '山田太郎',
     uploadedAt: '2026-01-10',
     description: '微分積分学Iの期末試験です。主に積分の応用問題が中心でした。',
@@ -54,46 +40,6 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
 関数 f(x) = x³ - 3x² + 2 の増減表を作成し、極値を求めよ。
     `,
     additionalInfo: '教科書の例題と似た問題が多く出題されました。特に積分の計算は確実にできるようにしておくべきです。',
-  };
-
-  const comments: Comment[] = [
-    {
-      id: '1',
-      author: '佐藤花子',
-      content: 'とても参考になりました！大問3の面積計算がポイントですね。',
-      timestamp: '2026-01-12 14:30',
-      upvotes: 12,
-    },
-    {
-      id: '2',
-      author: '鈴木一郎',
-      content: '教科書の練習問題をしっかりやっておけば解ける内容でした。',
-      timestamp: '2026-01-13 09:15',
-      upvotes: 8,
-    },
-    {
-      id: '3',
-      author: '田中次郎',
-      content: '時間配分が重要です。大問1,2を素早く終わらせて、大問3,4に時間を使いましょう。',
-      timestamp: '2026-01-14 16:45',
-      upvotes: 15,
-    },
-  ];
-
-  const handleVote = (type: 'up' | 'down') => {
-    if (userVote === type) {
-      setUserVote(null);
-    } else {
-      setUserVote(type);
-    }
-  };
-
-  const handleCommentSubmit = () => {
-    if (commentText.trim()) {
-      // コメント送信処理（モック）
-      setCommentText('');
-      alert('コメントを投稿しました');
-    }
   };
 
   return (
@@ -153,32 +99,6 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
               </div>
             </div>
 
-            {/* 評価ボタン */}
-            <div className="flex flex-col items-center gap-4 ml-6">
-              <button
-                onClick={() => handleVote('up')}
-                className={`flex flex-col items-center gap-1 px-6 py-3 rounded-lg transition-colors ${
-                  userVote === 'up'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-green-50'
-                }`}
-              >
-                <ThumbsUp className="w-6 h-6" />
-                <span className="font-bold text-lg">{test.upvotes + (userVote === 'up' ? 1 : 0)}</span>
-              </button>
-              
-              <button
-                onClick={() => handleVote('down')}
-                className={`flex flex-col items-center gap-1 px-6 py-3 rounded-lg transition-colors ${
-                  userVote === 'down'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-red-50'
-                }`}
-              >
-                <ThumbsDown className="w-6 h-6" />
-                <span className="font-bold text-lg">{test.downvotes + (userVote === 'down' ? 1 : 0)}</span>
-              </button>
-            </div>
           </div>
 
           {/* 投稿者情報 */}
@@ -214,57 +134,6 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
           </div>
         )}
 
-        {/* コメントセクション */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            コメント ({comments.length})
-          </h2>
-
-          {/* コメント入力 */}
-          <div className="mb-6">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="コメントを入力..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-              rows={3}
-            />
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handleCommentSubmit}
-                disabled={!commentText.trim()}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-              >
-                投稿
-              </button>
-            </div>
-          </div>
-
-          {/* コメント一覧 */}
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="border-t pt-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{comment.author}</div>
-                      <div className="text-xs text-gray-500">{comment.timestamp}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-gray-600">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span className="text-sm">{comment.upvotes}</span>
-                  </div>
-                </div>
-                <p className="text-gray-700 ml-10">{comment.content}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
