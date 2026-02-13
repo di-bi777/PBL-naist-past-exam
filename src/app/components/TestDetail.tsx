@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, User, Calendar, BookOpen, FileText, AlertCircle } from 'lucide-react';
+import { getAreaLabel, getTermLabel } from '../constants/options';
 
 interface Comment {
   id: string;
@@ -23,8 +24,8 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
     id: testId,
     title: '微分積分学期末試験',
     subject: '微分積分学I',
-    area: '数学',
-    semester: '前期',
+    area: 'mat',
+    semester: 'spring',
     year: 2025,
     professor: '山本教授',
     examDate: '2025年7月15日',
@@ -114,10 +115,10 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                  {test.area}
+                  {getAreaLabel(test.area) || test.area}
                 </span>
                 <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                  {test.semester}
+                  {getTermLabel(test.semester) || test.semester}
                 </span>
                 <span className="text-gray-500 text-sm">{test.year}年度</span>
               </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Calendar, BookOpen, FileText, User, Clock, AlertCircle, MessageCircle } from 'lucide-react';
+import { getAreaLabel, getTermLabel } from '../constants/options';
 
 interface Comment {
   id: string;
@@ -21,8 +22,8 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
     id: assignmentId,
     title: 'データ構造とアルゴリズムのレポート課題',
     subject: 'データ構造とアルゴリズム',
-    area: '情報',
-    semester: '前期',
+    area: 'cs',
+    semester: 'spring',
     year: 2025,
     professor: '佐藤教授',
     type: 'レポート',
@@ -111,10 +112,10 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                  {assignment.area}
+                  {getAreaLabel(assignment.area) || assignment.area}
                 </span>
                 <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                  {assignment.semester}
+                  {getTermLabel(assignment.semester) || assignment.semester}
                 </span>
                 <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
                   {assignment.type}
