@@ -69,7 +69,7 @@ export default function App() {
       )}
 
       {currentPage === 'login' && (
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage onLogin={handleLogin} onBack={() => handleNavigate(returnPage)} />
       )}
 
       {currentPage === 'home' && (
