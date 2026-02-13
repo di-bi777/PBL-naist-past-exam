@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft, User } from 'lucide-react';
+import { areaOptions, termOptions, getAreaLabel, getTermLabel } from '../constants/options';
 
 export interface Assignment {
   id: string;
@@ -28,8 +29,8 @@ export const assignmentMocks: Assignment[] = [
     id: '1',
     title: 'データ構造とアルゴリズムのレポート課題',
     subject: 'データ構造とアルゴリズム',
-    area: '情報',
-    semester: '前期',
+    area: 'cs',
+    semester: 'spring',
     year: 2025,
     type: 'レポート',
     fileName: 'report_datastructures.pdf',
@@ -43,8 +44,8 @@ export const assignmentMocks: Assignment[] = [
     id: '2',
     title: '有機化学実験レポート',
     subject: '有機化学実験',
-    area: '化学',
-    semester: '後期',
+    area: 'bio',
+    semester: 'fall',
     year: 2024,
     type: 'レポート',
     fileName: 'organic_lab_report.docx',
@@ -58,8 +59,8 @@ export const assignmentMocks: Assignment[] = [
     id: '3',
     title: '英語プレゼンテーション課題',
     subject: '学術英語II',
-    area: '英語',
-    semester: '前期',
+    area: 'cs',
+    semester: 'spring',
     year: 2025,
     type: 'プレゼンテーション',
     fileName: 'english_presentation.pptx',
@@ -73,8 +74,8 @@ export const assignmentMocks: Assignment[] = [
     id: '4',
     title: '物理学演習問題集',
     subject: '物理学I',
-    area: '物理',
-    semester: '前期',
+    area: 'mat',
+    semester: 'spring',
     year: 2025,
     type: '演習問題',
     fileName: 'physics_exercises.pdf',
@@ -88,8 +89,8 @@ export const assignmentMocks: Assignment[] = [
     id: '5',
     title: '経済学レポート：市場分析',
     subject: 'ミクロ経済学',
-    area: '経済',
-    semester: '後期',
+    area: 'bio',
+    semester: 'fall',
     year: 2024,
     type: 'レポート',
     fileName: 'microeconomics_market_analysis.pdf',
@@ -106,8 +107,8 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
 
-  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['all', '春学期', '秋学期'];
+  const areas = [{ key: 'all', label: '全ての領域' }, ...areaOptions];
+  const semesters = [{ key: 'all', label: '全ての開講期' }, ...termOptions];
 
   const filteredAssignments = assignmentMocks.filter((assignment) => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,8 +168,8 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
               >
                 {areas.map((area) => (
-                  <option key={area} value={area}>
-                    {area === 'all' ? '全ての領域' : area}
+                  <option key={area.key} value={area.key}>
+                    {area.label}
                   </option>
                 ))}
               </select>
@@ -181,8 +182,8 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
               >
                 {semesters.map((semester) => (
-                  <option key={semester} value={semester}>
-                    {semester === 'all' ? '全ての開講期' : semester}
+                  <option key={semester.key} value={semester.key}>
+                    {semester.label}
                   </option>
                 ))}
               </select>
@@ -207,10 +208,10 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                      {assignment.area}
+                      {getAreaLabel(assignment.area) || assignment.area}
                     </span>
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {assignment.semester}
+                      {getTermLabel(assignment.semester) || assignment.semester}
                     </span>
                     <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
                       {assignment.type}

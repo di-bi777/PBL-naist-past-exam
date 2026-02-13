@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft } from 'lucide-react';
+import { areaOptions, termOptions, getAreaLabel, getTermLabel } from '../constants/options';
 
 interface Test {
   id: string;
@@ -28,8 +29,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       id: '1',
       title: '微分積分学期末試験',
       subject: '微分積分学I',
-      area: '数学',
-      semester: '前期',
+      area: 'mat',
+      semester: 'spring',
       year: 2025,
       uploadedBy: '山田太郎',
       uploadedAt: '2026-01-10',
@@ -38,8 +39,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       id: '2',
       title: '線形代数中間試験',
       subject: '線形代数学',
-      area: '数学',
-      semester: '後期',
+      area: 'mat',
+      semester: 'fall',
       year: 2024,
       uploadedBy: '佐藤花子',
       uploadedAt: '2025-12-15',
@@ -48,8 +49,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       id: '3',
       title: 'プログラミング基礎期末試験',
       subject: 'プログラミング基礎',
-      area: '情報',
-      semester: '前期',
+      area: 'cs',
+      semester: 'spring',
       year: 2025,
       uploadedBy: '鈴木一郎',
       uploadedAt: '2026-01-08',
@@ -58,8 +59,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       id: '4',
       title: '物理学実験レポート試験',
       subject: '物理学実験',
-      area: '物理',
-      semester: '後期',
+      area: 'mat',
+      semester: 'fall',
       year: 2024,
       uploadedBy: '田中次郎',
       uploadedAt: '2025-11-20',
@@ -68,16 +69,16 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       id: '5',
       title: '有機化学中間試験',
       subject: '有機化学I',
-      area: '化学',
-      semester: '前期',
+      area: 'bio',
+      semester: 'spring',
       year: 2025,
       uploadedBy: '高橋美咲',
       uploadedAt: '2026-01-05',
     },
   ];
 
-  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['all', '春学期', '秋学期'];
+  const areas = [{ key: 'all', label: '全ての領域' }, ...areaOptions];
+  const semesters = [{ key: 'all', label: '全ての開講期' }, ...termOptions];
 
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -137,8 +138,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {areas.map((area) => (
-                  <option key={area} value={area}>
-                    {area === 'all' ? '全ての領域' : area}
+                  <option key={area.key} value={area.key}>
+                    {area.label}
                   </option>
                 ))}
               </select>
@@ -151,8 +152,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {semesters.map((semester) => (
-                  <option key={semester} value={semester}>
-                    {semester === 'all' ? '全ての開講期' : semester}
+                  <option key={semester.key} value={semester.key}>
+                    {semester.label}
                   </option>
                 ))}
               </select>
@@ -177,10 +178,10 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {test.area}
+                      {getAreaLabel(test.area) || test.area}
                     </span>
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {test.semester}
+                      {getTermLabel(test.semester) || test.semester}
                     </span>
                     <span className="text-gray-500 text-sm">{test.year}年度</span>
                   </div>

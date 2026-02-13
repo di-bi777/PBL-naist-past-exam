@@ -1,5 +1,7 @@
 import { useState, ChangeEvent } from 'react';
 import { ArrowLeft, Save, Upload, Loader2 } from 'lucide-react';
+import { areaOptions, termOptions, getAreaLabel } from '../constants/options';
+import { GAS_ENDPOINT } from '../constants/gas';
 
 interface AssignmentFormProps {
   onNavigate: (page: 'assignment-list' | 'home') => void;
@@ -18,12 +20,6 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
     year: new Date().getFullYear(), // 年度
     lectureNumber: '',  // 第何回講義
   });
-
-  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['春学期', '秋学期'];
-
-  // GASのエンドポイント
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwE2UDkDMSLXeBb8CeHIzVfGHPGJF_le79zqwhliyOgAsOw2CCUdQ0PhzKU7y4UHK8/exec';
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -56,26 +52,41 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
       const extension = file.name.split('.').pop();
       // lectureNumberが数字だけの場合は「第〇回」を付与、すでに文字が含まれる場合はそのまま結合するなど調整可能
       // ここでは入力値をそのまま使用し、ファイル名生成時に「第」「回」を付与します
-      const generatedFileName = `${formData.area}_${formData.subject}_第${formData.lectureNumber}回_課題.${extension}`;
+      const areaLabel = getAreaLabel(formData.area) || formData.area;
+      const generatedFileName = `${areaLabel}_${formData.subject}_第${formData.lectureNumber}回_課題.${extension}`;
 
       const payload = {
         ...formData,
+        lecture_no: formData.lectureNumber,
+        term: formData.semester,
         fileData: base64Content,
         fileName: generatedFileName, // 生成したファイル名をセット
         mimeType: file.type,
         type: '課題', // スプレッドシート側で判別できるようにタイプを固定
       };
 
-      const response = await fetch(GAS_ENDPOINT, {
+      const response = await fetch(`${GAS_ENDPOINT}?path=upload_assignment`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
+      const text = await response.text();
+      let result: { status?: string; message?: string } | null = null;
+      if (text) {
+        try {
+          result = JSON.parse(text) as { status?: string; message?: string };
+        } catch {
+          result = null;
+        }
+      }
+
+      if (response.ok && result?.status === 'success') {
         alert(`課題を登録しました\n保存名: ${generatedFileName}`);
         onNavigate('assignment-list');
       } else {
-        throw new Error('送信に失敗しました');
+        const message = result?.message ? String(result.message) : text || '送信に失敗しました';
+        throw new Error(message);
       }
     } catch (error) {
       console.error(error);
@@ -89,6 +100,8 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
     setFormData({ ...formData, [field]: value });
   };
 
+  const areaLabelForDisplay = getAreaLabel(formData.area) || '領域';
+
   return (
     <div className="relative min-h-screen bg-gray-50">
       {/* --- 全画面ローディングオーバーレイ --- */}
@@ -98,7 +111,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
             <p className="text-lg font-bold text-gray-800">課題データを送信中...</p>
             <p className="text-sm text-gray-500 mt-2">
-              {formData.area}_{formData.subject}_第{formData.lectureNumber}回_課題 として保存しています
+              {areaLabelForDisplay}_{formData.subject}_第{formData.lectureNumber}回_課題 として保存しています
             </p>
           </div>
         </div>
@@ -175,8 +188,8 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     disabled={isUploading}
                   >
                     <option value="">選択してください</option>
-                    {areas.map((area) => (
-                      <option key={area} value={area}>{area}</option>
+                    {areaOptions.map((area) => (
+                      <option key={area.key} value={area.key}>{area.label}</option>
                     ))}
                   </select>
                 </div>
@@ -193,8 +206,8 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     disabled={isUploading}
                   >
                     <option value="">選択してください</option>
-                    {semesters.map((semester) => (
-                      <option key={semester} value={semester}>{semester}</option>
+                    {termOptions.map((term) => (
+                      <option key={term.key} value={term.key}>{term.label}</option>
                     ))}
                   </select>
                 </div>
@@ -234,7 +247,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                       {/* 保存名のプレビュー */}
                       {file && !isUploading && (
                         <p className="text-xs text-blue-500 mt-2 font-medium">
-                          保存名: {formData.area || "領域"}_{formData.subject || "科目"}_第{formData.lectureNumber || "X"}回_課題
+                          保存名: {areaLabelForDisplay}_{formData.subject || "科目"}_第{formData.lectureNumber || "X"}回_課題
                         </p>
                       )}
                     </div>

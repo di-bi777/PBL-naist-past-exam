@@ -1,9 +1,11 @@
 import { useState, ChangeEvent } from 'react';
 import { ArrowLeft, Save, Upload, Loader2 } from 'lucide-react';
+import { areaOptions, termOptions, allowedMaterialOptions, getAreaLabel } from '../constants/options';
+import { GAS_ENDPOINT } from '../constants/gas';
 
 interface TestFormProps {
-  onNavigate: (page: 'test-list') => void;
-  previousPage: 'assignment-list' | 'home';
+  onNavigate: (page: 'test-list' | 'home') => void;
+  previousPage: 'test-list' | 'home';
 }
 
 export function TestForm({ onNavigate, previousPage }: TestFormProps) {
@@ -18,11 +20,6 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
     allowedMaterials: [] as string[],
     content: '',
   });
-
-  const areas = ['情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['春学期', '秋学期'];
-
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwE2UDkDMSLXeBb8CeHIzVfGHPGJF_le79zqwhliyOgAsOw2CCUdQ0PhzKU7y4UHK8/exec';
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -53,25 +50,40 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
       // --- ファイル名の自動生成ロジック ---
       // 形式: 領域名_科目名_年度.拡張子
       const extension = file.name.split('.').pop();
-      const generatedFileName = `${formData.area}_${formData.subject}_${formData.year}.${extension}`;
+      const areaLabel = getAreaLabel(formData.area) || formData.area;
+      const generatedFileName = `${areaLabel}_${formData.subject}_${formData.year}.${extension}`;
 
       const payload = {
         ...formData,
+        term: formData.semester,
+        instructor: formData.professor,
         fileData: base64Content,
         fileName: generatedFileName, // 自動生成した名前をセット
         mimeType: file.type,
       };
 
-      const response = await fetch(GAS_ENDPOINT, {
+      const response = await fetch(`${GAS_ENDPOINT}?path=upload_exam`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
+      const text = await response.text();
+      let result: { status?: string; message?: string } | null = null;
+      if (text) {
+        try {
+          result = JSON.parse(text) as { status?: string; message?: string };
+        } catch {
+          result = null;
+        }
+      }
+
+      if (response.ok && result?.status === 'success') {
         alert(`過去問を登録しました\n保存名: ${generatedFileName}`);
         onNavigate('test-list');
       } else {
-        throw new Error('送信に失敗しました');
+        const message = result?.message ? String(result.message) : text || '送信に失敗しました';
+        throw new Error(message);
       }
     } catch (error) {
       console.error(error);
@@ -93,6 +105,8 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
     setFormData({ ...formData, allowedMaterials: next });
   };
 
+  const areaLabelForDisplay = getAreaLabel(formData.area) || '領域';
+
   return (
     <div className="relative min-h-screen bg-gray-50">
       {/* ローディングオーバーレイ */}
@@ -102,7 +116,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
             <p className="text-lg font-bold text-gray-800">データを送信中...</p>
             <p className="text-sm text-gray-500 mt-2">
-              {formData.area}_{formData.subject}_{formData.year} として保存しています
+              {areaLabelForDisplay}_{formData.subject}_{formData.year} として保存しています
             </p>
           </div>
         </div>
@@ -166,7 +180,9 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                     disabled={isUploading}
                   >
                     <option value="">選択してください</option>
-                    {areas.map((area) => (<option key={area} value={area}>{area}</option>))}
+                    {areaOptions.map((area) => (
+                      <option key={area.key} value={area.key}>{area.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -181,7 +197,9 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                     disabled={isUploading}
                   >
                     <option value="">選択してください</option>
-                    {semesters.map((semester) => (<option key={semester} value={semester}>{semester}</option>))}
+                    {termOptions.map((term) => (
+                      <option key={term.key} value={term.key}>{term.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -206,17 +224,17 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">持ち込み可能品</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-4 border border-gray-300 rounded-lg">
-                  {['電卓', '辞書', '教科書', 'ノート', '自作メモ'].map((item) => (
-                    <label key={item} className="flex items-center gap-2 cursor-pointer group">
+                  {allowedMaterialOptions.map((item) => (
+                    <label key={item.key} className="flex items-center gap-2 cursor-pointer group">
                       <input
                         type="checkbox"
-                        checked={formData.allowedMaterials.includes(item)}
-                        onChange={() => handleCheckboxChange(item)}
+                        checked={formData.allowedMaterials.includes(item.key)}
+                        onChange={() => handleCheckboxChange(item.key)}
                         disabled={isUploading}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
-                        {item}
+                        {item.label}
                       </span>
                     </label>
                   ))}
@@ -239,7 +257,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                     </p>
                     {file && !isUploading && (
                       <p className="text-xs text-blue-500 mt-2 font-medium">
-                        保存名: {formData.area || "領域"}_{formData.subject || "科目"}_{formData.year}
+                        保存名: {areaLabelForDisplay}_{formData.subject || "科目"}_{formData.year}
                       </p>
                     )}
                   </div>
