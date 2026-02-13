@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Header } from '@/app/components/Header';
 import { LoginPage } from '@/app/components/LoginPage';
 import { HomePage } from '@/app/components/HomePage';
@@ -10,117 +11,182 @@ import { AssignmentDetail } from '@/app/components/AssignmentDetail';
 import { AssignmentForm } from '@/app/components/AssignmentForm';
 import { AdminPage } from '@/app/components/AdminPage';
 
-type Page = 
+type Page =
   | 'login'
-  | 'home' 
-  | 'test-list' 
-  | 'test-detail' 
+  | 'home'
+  | 'test-list'
+  | 'test-detail'
   | 'test-form'
-  | 'assignment-list' 
-  | 'assignment-detail' 
+  | 'assignment-list'
+  | 'assignment-detail'
   | 'assignment-form'
   | 'admin';
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [returnPage, setReturnPage] = useState<Page>('home');
-  const [previousPage, setPreviousPage] = useState<Page | null>(null);
-  const [showTerms, setShowTerms] = useState(false);
-  const [username, setUsername] = useState('');
-  const [selectedTestId, setSelectedTestId] = useState('');
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
+type NavState = {
+  from?: string;
+};
 
-  const handleLogin = (name: string) => {
-    setUsername('管理者');
-    setCurrentPage('admin');
+const resolvePath = (page: Page, id?: string) => {
+  switch (page) {
+    case 'home':
+      return '/';
+    case 'login':
+      return '/login';
+    case 'admin':
+      return '/admin';
+    case 'test-list':
+      return '/tests';
+    case 'test-form':
+      return '/tests/new';
+    case 'test-detail':
+      return id ? `/tests/${id}` : '/tests';
+    case 'assignment-list':
+      return '/assignments';
+    case 'assignment-form':
+      return '/assignments/new';
+    case 'assignment-detail':
+      return id ? `/assignments/${id}` : '/assignments';
+    default:
+      return '/';
+  }
+};
+
+const shouldCaptureFrom = (page: Page) =>
+  page === 'login' || page === 'test-form' || page === 'assignment-form' || page === 'admin';
+
+const getTestFormPrevious = (fromPath?: string): 'test-list' | 'home' => {
+  if (!fromPath) {
+    return 'test-list';
+  }
+  if (fromPath.startsWith('/tests')) {
+    return 'test-list';
+  }
+  return 'home';
+};
+
+const getAssignmentFormPrevious = (fromPath?: string): 'assignment-list' | 'home' => {
+  if (!fromPath) {
+    return 'assignment-list';
+  }
+  if (fromPath.startsWith('/assignments')) {
+    return 'assignment-list';
+  }
+  return 'home';
+};
+
+export default function App() {
+  const [username, setUsername] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as NavState | null;
+  const fromPath = state?.from;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
+
+  const handleNavigate = (page: Page, id?: string) => {
+    const path = resolvePath(page, id);
+    const navState = shouldCaptureFrom(page) ? { from: location.pathname } : undefined;
+    navigate(path, navState ? { state: navState } : undefined);
   };
 
   const handleLogout = () => {
     setUsername('');
-    setCurrentPage('home');
+    navigate('/');
   };
 
-  const handleNavigate = (page: Page, id?: string) => {
-    if (page === 'login') {
-      setReturnPage(currentPage);
+  const loginReturnTo = fromPath ?? '/';
+  const adminReturnTo = fromPath ?? '/';
+
+  const TestDetailRoute = () => {
+    const { testId } = useParams<{ testId: string }>();
+    if (!testId) {
+      return <Navigate to="/tests" replace />;
     }
-    if (page === 'test-detail' && id) {
-      setSelectedTestId(id);
-    } else if (page === 'assignment-detail' && id) {
-      setSelectedAssignmentId(id);
+    return <TestDetail testId={testId} onNavigate={(page) => handleNavigate(page)} />;
+  };
+
+  const AssignmentDetailRoute = () => {
+    const { assignmentId } = useParams<{ assignmentId: string }>();
+    if (!assignmentId) {
+      return <Navigate to="/assignments" replace />;
     }
-    // フォームページに遷移する場合は前のページを記憶
-    if (page === 'test-form' || page === 'assignment-form') {
-      setPreviousPage(currentPage);
-    }
-    setCurrentPage(page);
+    return (
+      <AssignmentDetail
+        assignmentId={assignmentId}
+        onNavigate={(page) => handleNavigate(page)}
+      />
+    );
   };
 
   return (
     <div className="size-full">
-      {currentPage !== 'login' && (
-        <Header 
+      {location.pathname !== '/login' && (
+        <Header
           isLoggedIn={Boolean(username)}
-          username={username} 
+          username={username}
           onLogout={handleLogout}
           onLogin={() => handleNavigate('login')}
           onAdminNavigate={() => handleNavigate('admin')}
         />
       )}
 
-      {currentPage === 'login' && (
-        <LoginPage onLogin={handleLogin} onBack={() => handleNavigate(returnPage)} />
-      )}
-
-      {currentPage === 'home' && (
-        <HomePage onNavigate={handleNavigate} />
-      )}
-
-      {currentPage === 'test-list' && (
-        <TestList 
-          onNavigate={handleNavigate}
-          onShowForm={() => handleNavigate('test-form')}
+      <Routes>
+        <Route path="/" element={<HomePage onNavigate={(page) => handleNavigate(page)} />} />
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              onLogin={(_name) => {
+                setUsername('管理者');
+                navigate('/admin', { state: { from: loginReturnTo } });
+              }}
+              onBack={() => navigate(loginReturnTo)}
+            />
+          }
         />
-      )}
-
-      {currentPage === 'test-detail' && (
-        <TestDetail 
-          testId={selectedTestId}
-          onNavigate={handleNavigate}
+        <Route
+          path="/tests"
+          element={
+            <TestList
+              onNavigate={(page, id) => handleNavigate(page, id)}
+              onShowForm={() => handleNavigate('test-form')}
+            />
+          }
         />
-      )}
-
-      {currentPage === 'test-form' && (
-        <TestForm 
-          onNavigate={handleNavigate}
-          previousPage={previousPage || 'test-list'}
+        <Route
+          path="/tests/new"
+          element={
+            <TestForm
+              onNavigate={(page) => handleNavigate(page)}
+              previousPage={getTestFormPrevious(fromPath)}
+            />
+          }
         />
-      )}
-
-      {currentPage === 'assignment-list' && (
-        <AssignmentList 
-          onNavigate={handleNavigate}
-          onShowForm={() => handleNavigate('assignment-form')}
+        <Route path="/tests/:testId" element={<TestDetailRoute />} />
+        <Route
+          path="/assignments"
+          element={
+            <AssignmentList
+              onNavigate={(page, id) => handleNavigate(page, id)}
+              onShowForm={() => handleNavigate('assignment-form')}
+            />
+          }
         />
-      )}
-
-      {currentPage === 'assignment-detail' && (
-        <AssignmentDetail 
-          assignmentId={selectedAssignmentId}
-          onNavigate={handleNavigate}
+        <Route
+          path="/assignments/new"
+          element={
+            <AssignmentForm
+              onNavigate={(page) => handleNavigate(page)}
+              previousPage={getAssignmentFormPrevious(fromPath)}
+            />
+          }
         />
-      )}
-
-      {currentPage === 'assignment-form' && (
-        <AssignmentForm 
-          onNavigate={handleNavigate}
-          previousPage={previousPage || 'assignment-list'}
-        />
-      )}
-
-      {currentPage === 'admin' && (
-        <AdminPage onBack={() => handleNavigate(returnPage)} />
-      )}
+        <Route path="/assignments/:assignmentId" element={<AssignmentDetailRoute />} />
+        <Route path="/admin" element={<AdminPage onBack={() => navigate(adminReturnTo)} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }
