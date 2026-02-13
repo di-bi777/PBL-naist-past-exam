@@ -12,6 +12,9 @@
   ## 管理者画面からファイルを移動させるには
 
   .envファイルに以下の行を追加
-VITE_GAS_DRIVE_ENDPOINT=doGet(Pending)のデプロイURL
-VITE_GAS_APPROVE_ENDPOINT=approve_pending_fileのデプロイURL
-VITE_GAS_REJECT_ENDPOINT=reject_pending_fileのデプロイURL
+  
+VITE_GAS_DRIVE_ENDPOINT={doGet(Pending)のデプロイURL}
+
+VITE_GAS_APPROVE_ENDPOINT={approve_pending_fileのデプロイURL}
+
+VITE_GAS_REJECT_ENDPOINT={reject_pending_fileのデプロイURL}
