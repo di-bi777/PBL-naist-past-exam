@@ -17,6 +17,9 @@ type DriveFile = {
 
 const GAS_DRIVE_ENDPOINT = import.meta.env.VITE_GAS_DRIVE_ENDPOINT as string | undefined;
 const GAS_APPROVE_ENDPOINT = import.meta.env.VITE_GAS_APPROVE_ENDPOINT as string | undefined;
+const GAS_REJECT_ENDPOINT =
+  (import.meta.env.VITE_GAS_REJECT_ENDPOINT as string | undefined) ?? GAS_APPROVE_ENDPOINT;
+const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
 
 const formatBytes = (bytes?: string) => {
@@ -46,6 +49,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [driveError, setDriveError] = useState<string>('');
   const [driveRaw, setDriveRaw] = useState<string>('');
   const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
+  const [rejectingFileIds, setRejectingFileIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -102,6 +106,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       return;
     }
 
+    const confirmed = window.confirm(
+      `ファイル「${file.name}」を承認して Approved フォルダへ移動します。\n実行しますか？`
+    );
+    if (!confirmed) return;
+
     setApprovingFileIds((prev) => [...prev, file.id]);
     try {
       const url = `${GAS_APPROVE_ENDPOINT}${GAS_APPROVE_ENDPOINT.includes('?') ? '&' : '?'}path=approve_pending_file`;
@@ -139,6 +148,82 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   };
 
+  const handleReject = async (file: DriveFile) => {
+    if (!GAS_REJECT_ENDPOINT) {
+      alert('拒否エンドポイントが未設定です。VITE_GAS_REJECT_ENDPOINT を確認してください。');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `ファイル「${file.name}」を削除します。\nこの操作は取り消せません。実行しますか？`
+    );
+    if (!confirmed) return;
+
+    setRejectingFileIds((prev) => [...prev, file.id]);
+    try {
+      const requests = [
+        {
+          url: `${GAS_REJECT_ENDPOINT}${GAS_REJECT_ENDPOINT.includes('?') ? '&' : '?'}path=${encodeURIComponent(GAS_REJECT_PATH)}`,
+          body: { fileId: file.id },
+        },
+        {
+          url: `${GAS_REJECT_ENDPOINT}${GAS_REJECT_ENDPOINT.includes('?') ? '&' : '?'}path=reject_pending_file`,
+          body: { fileId: file.id },
+        },
+        {
+          url: GAS_REJECT_ENDPOINT,
+          body: { fileId: file.id },
+        },
+        {
+          url: GAS_REJECT_ENDPOINT,
+          body: { file_id: file.id },
+        },
+      ];
+
+      let finalError = '拒否処理に失敗しました';
+      let succeeded = false;
+
+      for (const req of requests) {
+        const response = await fetch(req.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(req.body),
+        });
+        const text = await response.text();
+        let result: { status?: string; message?: string } | null = null;
+        if (text) {
+          try {
+            result = JSON.parse(text) as { status?: string; message?: string };
+          } catch {
+            result = null;
+          }
+        }
+
+        if (response.ok && (!result?.status || result.status === 'success')) {
+          succeeded = true;
+          break;
+        }
+
+        finalError = result?.message || text || finalError;
+        if (!finalError.includes('unknown path')) {
+          break;
+        }
+      }
+
+      if (!succeeded) {
+        throw new Error(finalError);
+      }
+
+      setDriveFiles((prev) => prev.filter((f) => f.id !== file.id));
+      alert(`削除しました: ${file.name}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '不明なエラーが発生しました';
+      alert(`拒否に失敗しました: ${message}`);
+    } finally {
+      setRejectingFileIds((prev) => prev.filter((id) => id !== file.id));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -165,6 +250,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <div className="mt-2 space-y-2">
               <div>エンドポイント: {GAS_DRIVE_ENDPOINT ?? '未設定'}</div>
               <div>承認エンドポイント: {GAS_APPROVE_ENDPOINT ?? '未設定'}</div>
+              <div>拒否エンドポイント: {GAS_REJECT_ENDPOINT ?? '未設定'}</div>
+              <div>拒否パス: {GAS_REJECT_PATH}</div>
               <div>ステータス: {driveStatus}</div>
               {driveError && <div>エラー: {driveError}</div>}
               <div>応答サンプル: {driveRaw ? driveRaw : '（空）'}</div>
@@ -222,7 +309,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="w-fit flex flex-col items-stretch gap-3">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -234,9 +321,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
                         </button>
                         <button
                           type="button"
+                          onClick={() => handleReject(file)}
+                          disabled={rejectingFileIds.includes(file.id)}
                           className="text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
                         >
-                          拒否
+                          {rejectingFileIds.includes(file.id) ? '削除中...' : '拒否'}
                         </button>
                       </div>
                       {file.webViewLink ? (
@@ -244,13 +333,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
                           href={file.webViewLink}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          className="w-full text-center text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           開く
                         </a>
                       ) : (
                         <button
-                          className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed"
+                          className="w-full text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed"
                           disabled
                         >
                           リンクなし
