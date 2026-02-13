@@ -1,3 +1,3 @@
 export const GAS_PROXY_PATH = '/api/gas';
 export const GAS_PROXY_TARGET =
-  'https://script.google.com/macros/s/AKfycbxkuUPd81zM-SC-_gN3c0QBK3-puNuEPPVr-aR6drlj2jxXhTGpOnQxrBAJsUuIgRg/exec';
+  'https://script.google.com/macros/s/AKfycbxN-7T47SBceyDglVTkMgycePj1ED95wWGuyubUCAUYdMpkW4mQ06ZVfNgF3QRZ-4Dr/exec';
