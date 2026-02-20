@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Search, Plus, Calendar, BookOpen, ArrowLeft } from 'lucide-react';
-import { areaOptions, termOptions, getAreaLabel, getTermLabel } from '../constants/options';
+import { useState, useEffect } from 'react'; // useEffectを追加
+import { Search, Plus, ThumbsUp, ThumbsDown, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
 
 interface Test {
   id: string;
@@ -9,6 +8,9 @@ interface Test {
   area: string;
   semester: string;
   year: number;
+  upvotes: number;
+  downvotes: number;
+  commentCount: number;
   uploadedBy: string;
   uploadedAt: string;
 }
@@ -22,64 +24,46 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
+  
+  // データ取得用のState
+  const [tests, setTests] = useState<Test[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // モックデータ
-  const tests: Test[] = [
-    {
-      id: '1',
-      title: '微分積分学期末試験',
-      subject: '微分積分学I',
-      area: 'mat',
-      semester: 'spring',
-      year: 2025,
-      uploadedBy: '山田太郎',
-      uploadedAt: '2026-01-10',
-    },
-    {
-      id: '2',
-      title: '線形代数中間試験',
-      subject: '線形代数学',
-      area: 'mat',
-      semester: 'fall',
-      year: 2024,
-      uploadedBy: '佐藤花子',
-      uploadedAt: '2025-12-15',
-    },
-    {
-      id: '3',
-      title: 'プログラミング基礎期末試験',
-      subject: 'プログラミング基礎',
-      area: 'cs',
-      semester: 'spring',
-      year: 2025,
-      uploadedBy: '鈴木一郎',
-      uploadedAt: '2026-01-08',
-    },
-    {
-      id: '4',
-      title: '物理学実験レポート試験',
-      subject: '物理学実験',
-      area: 'mat',
-      semester: 'fall',
-      year: 2024,
-      uploadedBy: '田中次郎',
-      uploadedAt: '2025-11-20',
-    },
-    {
-      id: '5',
-      title: '有機化学中間試験',
-      subject: '有機化学I',
-      area: 'bio',
-      semester: 'spring',
-      year: 2025,
-      uploadedBy: '高橋美咲',
-      uploadedAt: '2026-01-05',
-    },
-  ];
+  // GASのURL (doPostと同じURLでOK)
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyeejxUY7FJ-omW-CeSm9Ww_Gk-rN4iLqFr9Bf0SrkwEhys-XaLQY5SPU0IaEwHakwE/exec';
 
-  const areas = [{ key: 'all', label: '全ての領域' }, ...areaOptions];
-  const semesters = [{ key: 'all', label: '全ての開講期' }, ...termOptions];
+  // 初回レンダリング時にデータを取得
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        const response = await fetch(GAS_ENDPOINT);
+        if (!response.ok) {
+          throw new Error('データの取得に失敗しました');
+        }
+        const data = await response.json();
+        
+        // エラーオブジェクトが返ってきていないか確認
+        if (data.error) {
+          throw new Error(data.error);
+        }
 
+        setTests(data);
+      } catch (err) {
+        console.error(err);
+        setError('過去問データの読み込みに失敗しました。');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTests();
+  }, []);
+
+  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
+  const semesters = ['all', '春学期', '秋学期'];
+
+  // フィルタリング処理
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          test.subject.toLowerCase().includes(searchQuery.toLowerCase());
@@ -87,6 +71,33 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
     const matchesSemester = selectedSemester === 'all' || test.semester === selectedSemester;
     return matchesSearch && matchesArea && matchesSemester;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">データを読み込んでいます...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 text-blue-600 hover:underline"
+          >
+            再読み込み
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -138,8 +149,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {areas.map((area) => (
-                  <option key={area.key} value={area.key}>
-                    {area.label}
+                  <option key={area} value={area}>
+                    {area === 'all' ? '全ての領域' : area}
                   </option>
                 ))}
               </select>
@@ -152,8 +163,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {semesters.map((semester) => (
-                  <option key={semester.key} value={semester.key}>
-                    {semester.label}
+                  <option key={semester} value={semester}>
+                    {semester === 'all' ? '全ての開講期' : semester}
                   </option>
                 ))}
               </select>
@@ -178,10 +189,10 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {getAreaLabel(test.area) || test.area}
+                      {test.area}
                     </span>
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {getTermLabel(test.semester) || test.semester}
+                      {test.semester}
                     </span>
                     <span className="text-gray-500 text-sm">{test.year}年度</span>
                   </div>
@@ -201,6 +212,21 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                   </div>
                 </div>
 
+                <div className="flex flex-col items-end gap-3 ml-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-green-600">
+                      <ThumbsUp className="w-5 h-5" />
+                      <span className="font-medium">{test.upvotes}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-red-600">
+                      <ThumbsDown className="w-5 h-5" />
+                      <span className="font-medium">{test.downvotes}</span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {test.commentCount}件のコメント
+                  </div>
+                </div>
               </div>
             </div>
           ))}
