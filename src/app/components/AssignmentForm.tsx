@@ -67,7 +67,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
 
       const response = await fetch(`${GAS_ENDPOINT}?path=upload_assignment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify(payload),
       });
 
@@ -90,7 +90,8 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
       }
     } catch (error) {
       console.error(error);
-      alert('エラーが発生しました');
+      const msg = error instanceof Error ? error.message : String(error);
+      alert(`エラーが発生しました\n${msg}`);
     } finally {
       setIsUploading(false);
     }
