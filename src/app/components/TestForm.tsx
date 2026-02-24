@@ -64,7 +64,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
 
       const response = await fetch(`${GAS_ENDPOINT}?path=upload_exam`, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -87,8 +87,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
       }
     } catch (error) {
       console.error(error);
-      const msg = error instanceof Error ? error.message : String(error);
-      alert(`エラーが発生しました\n${msg}`);
+      alert('エラーが発生しました');
     } finally {
       setIsUploading(false);
     }
