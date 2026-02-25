@@ -1,4 +1,38 @@
+import { useEffect, useState } from 'react';
 import { FileText, ClipboardList, Plus } from 'lucide-react';
+import { GAS_DB_ENDPOINT } from '../constants/gas';
+
+type StatsStatus = 'idle' | 'loading' | 'ready' | 'error' | 'missing';
+
+type ApprovedCounts = {
+  exams: number;
+  assignments: number;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const toNumber = (value: unknown) => (typeof value === 'number' ? value : null);
+
+const extractApprovedCounts = (payload: unknown): ApprovedCounts | null => {
+  if (!isRecord(payload)) return null;
+  const counts = payload.counts;
+  if (!isRecord(counts)) return null;
+
+  const exams = isRecord(counts.exams) ? toNumber(counts.exams.approved) : null;
+  const assignments = isRecord(counts.assignments)
+    ? toNumber(counts.assignments.approved)
+    : null;
+
+  if (exams === null || assignments === null) return null;
+  return { exams, assignments };
+};
+
+const formatCount = (value: number | null, status: StatsStatus) => {
+  if (status === 'loading') return '...';
+  if (typeof value === 'number') return value.toLocaleString('ja-JP');
+  return '—';
+};
 
 interface HomePageProps {
   onNavigate: (page: 'test-list' | 'test-form' | 'assignment-list' | 'assignment-form') => void;
@@ -7,6 +41,46 @@ interface HomePageProps {
 }
 
 export function HomePage({ onNavigate, onAdminLogin, isLoggedIn }: HomePageProps) {
+  const [counts, setCounts] = useState<ApprovedCounts | null>(null);
+  const [statsStatus, setStatsStatus] = useState<StatsStatus>('idle');
+
+  useEffect(() => {
+    if (!GAS_DB_ENDPOINT) {
+      setStatsStatus('missing');
+      return;
+    }
+
+    const controller = new AbortController();
+    const fetchCounts = async () => {
+      setStatsStatus('loading');
+      try {
+        const response = await fetch(GAS_DB_ENDPOINT, { signal: controller.signal });
+        const text = await response.text();
+        if (!response.ok) {
+          throw new Error(`GAS endpoint error: ${response.status} ${text}`);
+        }
+        const payload = text ? (JSON.parse(text) as unknown) : null;
+        const nextCounts = extractApprovedCounts(payload);
+        if (!nextCounts) {
+          throw new Error('approved counts not found');
+        }
+        setCounts(nextCounts);
+        setStatsStatus('ready');
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+        setStatsStatus('error');
+      }
+    };
+
+    fetchCounts();
+    return () => controller.abort();
+  }, [GAS_DB_ENDPOINT]);
+
+  const examCountLabel = formatCount(counts?.exams ?? null, statsStatus);
+  const assignmentCountLabel = formatCount(counts?.assignments ?? null, statsStatus);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -72,11 +146,11 @@ export function HomePage({ onNavigate, onAdminLogin, isLoggedIn }: HomePageProps
         {/* 統計情報 */}
         <div className="mt-16 grid grid-cols-2 gap-6 max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">248</div>
+            <div className="text-3xl font-bold text-blue-600 mb-2">{examCountLabel}</div>
             <div className="text-sm text-gray-600">登録過去問</div>
           </div>
           <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">142</div>
+            <div className="text-3xl font-bold text-green-600 mb-2">{assignmentCountLabel}</div>
             <div className="text-sm text-gray-600">課題情報</div>
           </div>
         </div>
