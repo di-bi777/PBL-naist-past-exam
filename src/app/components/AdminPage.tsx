@@ -72,12 +72,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
       return;
     }
 
+    const endpoint = GAS_DRIVE_ENDPOINT;
     const controller = new AbortController();
     const fetchDriveFiles = async () => {
       setDriveStatus('loading');
       setDriveError('');
       try {
-        const res = await fetch(GAS_DRIVE_ENDPOINT, { signal: controller.signal });
+        const res = await fetch(endpoint, { signal: controller.signal });
         const text = await res.text();
         setDriveRaw(text.slice(0, 1500));
         if (!res.ok) {
