@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // useEffectを追加
+import { useState, useEffect } from 'react';
 import { Search, Plus, ThumbsUp, ThumbsDown, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
 
 interface Test {
@@ -13,6 +13,8 @@ interface Test {
   commentCount: number;
   uploadedBy: string;
   uploadedAt: string;
+  pdfUrl: string; // PDFを開くために追加
+  type: string;   // 状態確認用に追加
 }
 
 interface TestListProps {
@@ -25,30 +27,52 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
   
-  // データ取得用のState
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 初回レンダリング時にデータを取得
+  // GASのURL (環境変数から取得するのが理想ですが、今回は直接指定)
+  const GAS_EXAM_DISPLAY_ENDPOINT= import.meta.env.VITE_GAS_EXAM_DISPLAY_ENDPOINT as string;
+
+
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbyeejxUY7FJ-omW-CeSm9Ww_Gk-rN4iLqFr9Bf0SrkwEhys-XaLQY5SPU0IaEwHakwE/exec');
-        if (!response.ok) {
-          throw new Error('データの取得に失敗しました');
-        }
-        const data = await response.json();
+        // ?path=... は不要になったので、そのままアクセスします
+        const response = await fetch(GAS_EXAM_DISPLAY_ENDPOINT);
         
-        // エラーオブジェクトが返ってきていないか確認
-        if (data.error) {
-          throw new Error(data.error);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const json = await response.json();
+        
+        if (json.status === 'error' || json.error) {
+          throw new Error(json.message || json.error || 'データの取得に失敗しました');
         }
 
-        setTests(data);
+        const rawData = json.data || [];
+
+        const formattedTests: Test[] = rawData.map((row: any) => ({
+          id: String(row.id),
+          title: `${row.subject} (${row.year}年度)`,
+          subject: String(row.subject),
+          area: String(row.area),
+          semester: String(row.term),
+          year: Number(row.year),
+          upvotes: 0,
+          downvotes: 0,
+          commentCount: 0,
+          uploadedBy: row.instructor || '不明',
+          uploadedAt: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : '',
+          pdfUrl: String(row.pdf_url || ''),
+          type: String(row.type),
+        }));
+
+        setTests(formattedTests);
       } catch (err) {
         console.error(err);
-        setError('過去問データの読み込みに失敗しました。');
+        setError(err instanceof Error ? err.message : '過去問データの読み込みに失敗しました。');
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +84,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
   const semesters = ['all', '春学期', '秋学期'];
 
-  // フィルタリング処理
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          test.subject.toLowerCase().includes(searchQuery.toLowerCase());
@@ -87,7 +110,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
           <p>{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="mt-4 text-blue-600 hover:underline"
+            className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
           >
             再読み込み
           </button>
@@ -99,7 +122,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ヘッダー */}
         <div className="mb-8">
           <button
             onClick={() => onNavigate('home')}
@@ -123,7 +145,6 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
           </div>
         </div>
 
-        {/* 検索とフィルター */}
         <div className="bg-white rounded-xl shadow p-6 mb-8">
           <div className="grid md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
@@ -169,12 +190,10 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
           </div>
         </div>
 
-        {/* 検索結果 */}
         <div className="mb-4 text-gray-600">
           {filteredTests.length}件の過去問が見つかりました
         </div>
 
-        {/* 過去問リスト */}
         <div className="space-y-4">
           {filteredTests.map((test) => (
             <div
@@ -201,10 +220,10 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>投稿者: {test.uploadedBy}</span>
+                    <span>担当: {test.uploadedBy}</span>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {test.uploadedAt}
+                      登録日: {test.uploadedAt}
                     </div>
                   </div>
                 </div>
