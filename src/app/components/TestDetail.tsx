@@ -28,7 +28,7 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
   const [error, setError] = useState('');
 
   // 先ほど設定した環境変数を使用
-  const GAS_ENDPOINT = import.meta.env.VITE_GAS_EXAM_DISPLAY_ENDPOINT as string;
+  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -59,7 +59,7 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
           professor: String(row.instructor || '不明'),
           allowedMaterials: String(row.allowedMaterialsStr || '特になし'),
           uploadedBy: String(row.instructor || '不明'), // ※投稿者情報が別途ある場合は変更
-          uploadedAt: row.created_at ? new Date(row.created_at).toLocaleDateString('ja-JP') : '',
+          uploadedAt: row.created_gat ? new Date(row.created_at).toLocaleDateString('ja-JP') : '',
           pdfUrl: rawPdfUrl,
           previewUrl: previewUrl,
         });
