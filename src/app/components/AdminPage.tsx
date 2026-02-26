@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, FileText, Calendar, Cloud, FolderOpen } from 'lucide-react';
+import {
+  GAS_DRIVE_ENDPOINT,
+  GAS_APPROVE_ENDPOINT,
+  GAS_REJECT_ENDPOINT,
+} from '@/app/constants/gasAdmin';
 
 interface AdminPageProps {
   onBack: () => void;
@@ -15,10 +20,6 @@ type DriveFile = {
   iconLink?: string;
 };
 
-const GAS_DRIVE_ENDPOINT = import.meta.env.VITE_GAS_DRIVE_ENDPOINT as string | undefined;
-const GAS_APPROVE_ENDPOINT = import.meta.env.VITE_GAS_APPROVE_ENDPOINT as string | undefined;
-const GAS_REJECT_ENDPOINT =
-  (import.meta.env.VITE_GAS_REJECT_ENDPOINT as string | undefined) ?? GAS_APPROVE_ENDPOINT;
 const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
 
