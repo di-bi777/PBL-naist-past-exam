@@ -148,7 +148,7 @@ export default function App() {
           element={
             <LoginPage
               onLogin={(_name) => {
-                setUsername('管理者');
+                setUsername('admin');
                 navigate('/admin', { state: { from: loginReturnTo } });
               }}
               onBack={() => navigate(loginReturnTo)}

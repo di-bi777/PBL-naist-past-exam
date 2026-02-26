@@ -2,6 +2,7 @@ import { useState, ChangeEvent } from 'react';
 import { ArrowLeft, Save, Upload, Loader2 } from 'lucide-react';
 import { areaOptions, termOptions, allowedMaterialOptions, getAreaLabel } from '../constants/options';
 import { GAS_ENDPOINT } from '../constants/gas';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface TestFormProps {
   onNavigate: (page: 'test-list' | 'home') => void;
@@ -9,6 +10,7 @@ interface TestFormProps {
 }
 
 export function TestForm({ onNavigate, previousPage }: TestFormProps) {
+  const { t, language } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,7 +32,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      alert('ファイルをアップロードしてください');
+      alert(language === 'ja' ? 'ファイルをアップロードしてください' : 'Please upload a file');
       return;
     }
 
@@ -79,16 +81,18 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
       }
 
       if (response.ok && result?.status === 'success') {
-        alert(`過去問を登録しました\n保存名: ${generatedFileName}`);
+        alert(language === 'ja'
+          ? `過去問を登録しました\n保存名: ${generatedFileName}`
+          : `Past exam registered.\nSaved as: ${generatedFileName}`);
         onNavigate('test-list');
       } else {
-        const message = result?.message ? String(result.message) : text || '送信に失敗しました';
+        const message = result?.message ? String(result.message) : text || (language === 'ja' ? '送信に失敗しました' : 'Submission failed');
         throw new Error(message);
       }
     } catch (error) {
       console.error(error);
       const msg = error instanceof Error ? error.message : String(error);
-      alert(`エラーが発生しました\n${msg}`);
+      alert(language === 'ja' ? `エラーが発生しました\n${msg}` : `An error occurred\n${msg}`);
     } finally {
       setIsUploading(false);
     }
@@ -106,7 +110,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
     setFormData({ ...formData, allowedMaterials: next });
   };
 
-  const areaLabelForDisplay = getAreaLabel(formData.area) || '領域';
+  const areaLabelForDisplay = getAreaLabel(formData.area) || (language === 'ja' ? '領域' : 'Area');
 
   return (
     <div className="relative min-h-screen bg-gray-50">
@@ -115,9 +119,11 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-lg font-bold text-gray-800">データを送信中...</p>
+            <p className="text-lg font-bold text-gray-800">{t('form.exam.uploading')}</p>
             <p className="text-sm text-gray-500 mt-2">
-              {areaLabelForDisplay}_{formData.subject}_{formData.year} として保存しています
+              {language === 'ja'
+                ? `${areaLabelForDisplay}_${formData.subject}_${formData.year} として保存しています`
+                : `Saving as ${areaLabelForDisplay}_${formData.subject}_${formData.year}`}
             </p>
           </div>
         </div>
@@ -130,38 +136,38 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 disabled:opacity-50"
         >
           <ArrowLeft className="w-5 h-5" />
-          キャンセル
+          {t('form.cancel')}
         </button>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">過去問を登録</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('form.exam.title')}</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 基本情報 */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">基本情報</h2>
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">{t('form.basicInfo')}</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    科目名 <span className="text-red-500">*</span>
+                    {t('form.subject')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.subject}
                     onChange={(e) => handleChange('subject', e.target.value)}
-                    placeholder="例：データ構造とアルゴリズム"
+                    placeholder={language === 'ja' ? '例：データ構造とアルゴリズム' : 'e.g. Data Structures and Algorithms'}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                     required
                     disabled={isUploading}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">担当教員</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('form.exam.instructor')}</label>
                   <input
                     type="text"
                     value={formData.professor}
                     onChange={(e) => handleChange('professor', e.target.value)}
-                    placeholder="佐藤教授"
+                    placeholder={language === 'ja' ? '佐藤教授' : 'Prof. Smith'}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                     disabled={isUploading}
                   />
@@ -171,7 +177,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    領域 <span className="text-red-500">*</span>
+                    {t('form.area')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.area}
@@ -180,15 +186,15 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                     required
                     disabled={isUploading}
                   >
-                    <option value="">選択してください</option>
+                    <option value="">{t('form.pleaseSelect')}</option>
                     {areaOptions.map((area) => (
-                      <option key={area.key} value={area.key}>{area.label}</option>
+                      <option key={area.key} value={area.key}>{t(`area.${area.key}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    開講期 <span className="text-red-500">*</span>
+                    {t('form.semester')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.semester}
@@ -197,15 +203,15 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                     required
                     disabled={isUploading}
                   >
-                    <option value="">選択してください</option>
+                    <option value="">{t('form.pleaseSelect')}</option>
                     {termOptions.map((term) => (
-                      <option key={term.key} value={term.key}>{term.label}</option>
+                      <option key={term.key} value={term.key}>{t(`term.${term.key}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    年度 <span className="text-red-500">*</span>
+                    {t('form.year')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -221,9 +227,9 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
 
             {/* 試験詳細 */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">試験詳細</h2>
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">{t('form.exam.details')}</h2>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">持ち込み可能品</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('form.exam.allowedMaterials')}</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-white p-4 border border-gray-300 rounded-lg">
                   {allowedMaterialOptions.map((item) => (
                     <label key={item.key} className="flex items-center gap-2 cursor-pointer group">
@@ -235,7 +241,7 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
-                        {item.label}
+                        {t(`material.${item.key}`)}
                       </span>
                     </label>
                   ))}
@@ -245,20 +251,20 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
 
             {/* 添付ファイル */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">添付ファイル</h2>
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">{t('form.exam.attachment')}</h2>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  試験問題（PDF/画像） <span className="text-red-500">*</span>
+                  {t('form.exam.fileLabel')} <span className="text-red-500">*</span>
                 </label>
                 <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${file ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                     <Upload className={`w-8 h-8 mb-2 ${file ? 'text-blue-500' : 'text-gray-400'}`} />
                     <p className="text-sm text-gray-600 truncate max-w-xs">
-                      {file ? file.name : "クリックしてファイルをアップロード"}
+                      {file ? file.name : t('form.fileUpload')}
                     </p>
                     {file && !isUploading && (
                       <p className="text-xs text-blue-500 mt-2 font-medium">
-                        保存名: {areaLabelForDisplay}_{formData.subject || "科目"}_{formData.year}
+                        {t('form.saveName')} {areaLabelForDisplay}_{formData.subject || (language === 'ja' ? '科目' : 'Subject')}_{formData.year}
                       </p>
                     )}
                   </div>
@@ -284,12 +290,12 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
                 {isUploading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    送信中...
+                    {t('form.submitting')}
                   </>
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    登録する
+                    {t('form.submit')}
                   </>
                 )}
               </button>
