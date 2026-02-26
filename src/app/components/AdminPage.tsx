@@ -7,44 +7,17 @@ import {
   GAS_REJECT_ENDPOINT,
 } from '@/app/constants/gasAdmin';
 import { pastExamDbRows } from '@/app/constants/pastExamsDb';
+import { formatBytes, formatDateTime } from '@/app/utils/formatters';
+import { buildTagsByFileId, resolveFileTags } from '@/app/utils/tagResolver';
+import type { DriveFile } from '@/app/utils/tagResolver';
 
 interface AdminPageProps {
   onBack: () => void;
 }
 
-type DriveFile = {
-  id: string;
-  name: string;
-  mimeType: string;
-  modifiedTime?: string;
-  size?: string;
-  webViewLink?: string;
-  iconLink?: string;
-};
-
 const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
 
-const formatBytes = (bytes?: string) => {
-  if (!bytes) return '—';
-  const size = Number(bytes);
-  if (!Number.isFinite(size)) return '—';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = size;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  return `${value.toFixed(value < 10 && unitIndex > 0 ? 1 : 0)}${units[unitIndex]}`;
-};
-
-const formatDateTime = (value?: string, locale = 'ja-JP') => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
-};
 
 export function AdminPage({ onBack }: AdminPageProps) {
   const { t, language } = useLanguage();
@@ -102,89 +75,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
     return t('admin.drive.init');
   }, [driveFiles.length, driveStatus, t, language]);
 
-  const tagsByFileId = useMemo(() => {
-    const map = new Map<string, {
-      sourceSheet: 'exams' | 'assignments';
-      subject?: string;
-      instructor?: string;
-      area?: string;
-      term?: string;
-      year?: string;
-      type?: string;
-      allowedMaterialsStr?: string;
-      matchType: 'id' | 'heuristic';
-    }>();
-    for (const row of pastExamDbRows) {
-      const fileId = (row.pdf_file_id ?? '').trim();
-      if (!fileId || map.has(fileId)) continue;
-      map.set(fileId, {
-        sourceSheet: row.sourceSheet,
-        subject: row.subject?.trim(),
-        instructor: row.instructor?.trim(),
-        area: row.area?.trim(),
-        term: row.term?.trim(),
-        year: row.year?.trim(),
-        type: row.type?.trim(),
-        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
-        matchType: 'id',
-      });
-    }
-    return map;
-  }, []);
+  const tagsByFileId = useMemo(() => buildTagsByFileId(pastExamDbRows), []);
 
-  const resolvedTagsByFileId = useMemo(() => {
-    const resolved = new Map<string, {
-      sourceSheet: 'exams' | 'assignments';
-      subject?: string;
-      instructor?: string;
-      area?: string;
-      term?: string;
-      year?: string;
-      type?: string;
-      allowedMaterialsStr?: string;
-      matchType: 'id' | 'heuristic';
-    }>();
-
-    // 1) exact match by file id
-    for (const file of driveFiles) {
-      const exact = tagsByFileId.get(file.id);
-      if (exact) {
-        resolved.set(file.id, exact);
-      }
-    }
-
-    // 2) heuristic fallback: filename includes subject (+year if present)
-    for (const file of driveFiles) {
-      if (resolved.has(file.id)) continue;
-      const fileName = file.name.toLowerCase();
-
-      const candidates = pastExamDbRows.filter((row) => {
-        const subject = (row.subject ?? '').trim().toLowerCase();
-        if (!subject || !fileName.includes(subject)) return false;
-
-        const rawYear = (row.year ?? '').trim();
-        const year = rawYear.endsWith('.0') ? rawYear.slice(0, -2) : rawYear;
-        if (!year) return true;
-        return fileName.includes(year);
-      });
-
-      if (candidates.length !== 1) continue;
-      const row = candidates[0];
-      resolved.set(file.id, {
-        sourceSheet: row.sourceSheet,
-        subject: row.subject?.trim(),
-        instructor: row.instructor?.trim(),
-        area: row.area?.trim(),
-        term: row.term?.trim(),
-        year: row.year?.trim(),
-        type: row.type?.trim(),
-        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
-        matchType: 'heuristic',
-      });
-    }
-
-    return resolved;
-  }, [driveFiles, tagsByFileId]);
+  const resolvedTagsByFileId = useMemo(
+    () => resolveFileTags(driveFiles, tagsByFileId, pastExamDbRows),
+    [driveFiles, tagsByFileId],
+  );
 
   const examFiles = useMemo(
     () => driveFiles.filter((file) => resolvedTagsByFileId.get(file.id)?.sourceSheet === 'exams'),

@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
@@ -27,6 +28,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(GAS_PROXY_PATH, gasUrl.pathname),
       },
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/test/**', 'src/**/*.d.ts'],
     },
   },
 })
