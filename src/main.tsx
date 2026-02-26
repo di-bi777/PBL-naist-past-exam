@@ -5,7 +5,7 @@ import { LanguageProvider } from './app/contexts/LanguageContext.tsx';
 import './styles/index.css';
 
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
+  <BrowserRouter basename="/PBL-naist-past-exam/">
     <LanguageProvider>
       <App />
     </LanguageProvider>

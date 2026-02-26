@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, FileText, Calendar, Cloud, FolderOpen } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AdminPageProps {
   onBack: () => void;
@@ -36,14 +37,15 @@ const formatBytes = (bytes?: string) => {
   return `${value.toFixed(value < 10 && unitIndex > 0 ? 1 : 0)}${units[unitIndex]}`;
 };
 
-const formatDateTime = (value?: string) => {
+const formatDateTime = (value?: string, locale = 'ja-JP') => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('ja-JP', { dateStyle: 'medium', timeStyle: 'short' });
+  return date.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 export function AdminPage({ onBack }: AdminPageProps) {
+  const { t, language } = useLanguage();
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
   const [driveStatus, setDriveStatus] = useState<'idle' | 'loading' | 'ready' | 'error' | 'missing'>('idle');
   const [driveError, setDriveError] = useState<string>('');
@@ -76,7 +78,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
           return;
         }
         setDriveStatus('error');
-        setDriveError(error instanceof Error ? error.message : '不明なエラーが発生しました');
+        setDriveError(error instanceof Error ? error.message : (language === 'ja' ? '不明なエラーが発生しました' : 'An unknown error occurred'));
       }
     };
 
@@ -85,29 +87,28 @@ export function AdminPage({ onBack }: AdminPageProps) {
   }, []);
 
   const driveSummary = useMemo(() => {
-    if (driveStatus === 'missing') {
-      return 'GAS 連携の設定が未完了です（VITE_GAS_DRIVE_ENDPOINT）。';
-    }
-    if (driveStatus === 'loading') {
-      return 'Google Drive からフォルダ内容を取得しています。';
-    }
-    if (driveStatus === 'error') {
-      return 'Google Drive との連携に失敗しました。';
-    }
+    if (driveStatus === 'missing') return t('admin.drive.missing');
+    if (driveStatus === 'loading') return t('admin.drive.loading');
+    if (driveStatus === 'error') return t('admin.drive.error');
     if (driveStatus === 'ready') {
-      return `Google Drive 連携済み。${driveFiles.length}件のファイルを表示中。`;
+      return language === 'ja'
+        ? `Google Drive 連携済み。${driveFiles.length}件のファイルを表示中。`
+        : `Connected to Google Drive. Displaying ${driveFiles.length} file(s).`;
     }
-    return 'Google Drive 連携の初期化中です。';
-  }, [driveFiles.length, driveStatus]);
+    return t('admin.drive.init');
+  }, [driveFiles.length, driveStatus, t, language]);
 
   const handleApprove = async (file: DriveFile) => {
     if (!GAS_APPROVE_ENDPOINT) {
-      alert('承認エンドポイントが未設定です。VITE_GAS_APPROVE_ENDPOINT を確認してください。');
+      alert(language === 'ja'
+        ? '承認エンドポイントが未設定です。VITE_GAS_APPROVE_ENDPOINT を確認してください。'
+        : 'Approve endpoint is not configured. Check VITE_GAS_APPROVE_ENDPOINT.');
       return;
     }
 
-    const confirmed = window.confirm(
-      `ファイル「${file.name}」を承認して Approved フォルダへ移動します。\n実行しますか？`
+    const confirmed = window.confirm(language === 'ja'
+      ? `ファイル「${file.name}」を承認して Approved フォルダへ移動します。\n実行しますか？`
+      : `Approve file "${file.name}" and move it to the Approved folder.\nProceed?`
     );
     if (!confirmed) return;
 
@@ -135,14 +136,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
       }
 
       if (!response.ok || (result?.status && result.status !== 'success')) {
-        throw new Error(result?.message || text || '承認処理に失敗しました');
+        throw new Error(result?.message || text || (language === 'ja' ? '承認処理に失敗しました' : 'Approval failed'));
       }
 
       setDriveFiles((prev) => prev.filter((f) => f.id !== file.id));
-      alert(`承認しました: ${file.name}`);
+      alert(language === 'ja' ? `承認しました: ${file.name}` : `Approved: ${file.name}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '不明なエラーが発生しました';
-      alert(`承認に失敗しました: ${message}`);
+      const message = error instanceof Error ? error.message : (language === 'ja' ? '不明なエラーが発生しました' : 'An unknown error occurred');
+      alert(language === 'ja' ? `承認に失敗しました: ${message}` : `Approval failed: ${message}`);
     } finally {
       setApprovingFileIds((prev) => prev.filter((id) => id !== file.id));
     }
@@ -150,12 +151,15 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const handleReject = async (file: DriveFile) => {
     if (!GAS_REJECT_ENDPOINT) {
-      alert('拒否エンドポイントが未設定です。VITE_GAS_REJECT_ENDPOINT を確認してください。');
+      alert(language === 'ja'
+        ? '拒否エンドポイントが未設定です。VITE_GAS_REJECT_ENDPOINT を確認してください。'
+        : 'Reject endpoint is not configured. Check VITE_GAS_REJECT_ENDPOINT.');
       return;
     }
 
-    const confirmed = window.confirm(
-      `ファイル「${file.name}」を削除します。\nこの操作は取り消せません。実行しますか？`
+    const confirmed = window.confirm(language === 'ja'
+      ? `ファイル「${file.name}」を削除します。\nこの操作は取り消せません。実行しますか？`
+      : `Delete file "${file.name}".\nThis action cannot be undone. Proceed?`
     );
     if (!confirmed) return;
 
@@ -180,7 +184,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
         },
       ];
 
-      let finalError = '拒否処理に失敗しました';
+      let finalError = language === 'ja' ? '拒否処理に失敗しました' : 'Rejection failed';
       let succeeded = false;
 
       for (const req of requests) {
@@ -215,10 +219,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       }
 
       setDriveFiles((prev) => prev.filter((f) => f.id !== file.id));
-      alert(`削除しました: ${file.name}`);
+      alert(language === 'ja' ? `削除しました: ${file.name}` : `Deleted: ${file.name}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '不明なエラーが発生しました';
-      alert(`拒否に失敗しました: ${message}`);
+      const message = error instanceof Error ? error.message : (language === 'ja' ? '不明なエラーが発生しました' : 'An unknown error occurred');
+      alert(language === 'ja' ? `拒否に失敗しました: ${message}` : `Rejection failed: ${message}`);
     } finally {
       setRejectingFileIds((prev) => prev.filter((id) => id !== file.id));
     }
@@ -232,12 +236,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
-          ホームに戻る
+          {t('admin.backToHome')}
         </button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">管理者ページ</h1>
-          <p className="text-gray-600 mt-2">アップロードされたファイルの閲覧・確認</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('admin.title')}</h1>
+          <p className="text-gray-600 mt-2">{t('admin.subtitle')}</p>
           <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
             <Cloud className="w-4 h-4" />
             {driveSummary}
@@ -246,41 +250,37 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <div className="mt-2 text-xs text-red-500">{driveError}</div>
           )}
           <details className="mt-3 text-xs text-gray-400">
-            <summary className="cursor-pointer select-none">実行ログ</summary>
+            <summary className="cursor-pointer select-none">{t('admin.log.title')}</summary>
             <div className="mt-2 space-y-2">
-              <div>エンドポイント: {GAS_DRIVE_ENDPOINT ?? '未設定'}</div>
-              <div>承認エンドポイント: {GAS_APPROVE_ENDPOINT ?? '未設定'}</div>
-              <div>拒否エンドポイント: {GAS_REJECT_ENDPOINT ?? '未設定'}</div>
-              <div>拒否パス: {GAS_REJECT_PATH}</div>
-              <div>ステータス: {driveStatus}</div>
-              {driveError && <div>エラー: {driveError}</div>}
-              <div>応答サンプル: {driveRaw ? driveRaw : '（空）'}</div>
+              <div>{t('admin.log.endpoint')} {GAS_DRIVE_ENDPOINT ?? t('admin.log.notSet')}</div>
+              <div>{t('admin.log.approveEndpoint')} {GAS_APPROVE_ENDPOINT ?? t('admin.log.notSet')}</div>
+              <div>{t('admin.log.rejectEndpoint')} {GAS_REJECT_ENDPOINT ?? t('admin.log.notSet')}</div>
+              <div>{t('admin.log.rejectPath')} {GAS_REJECT_PATH}</div>
+              <div>{t('admin.log.status')} {driveStatus}</div>
+              {driveError && <div>{t('admin.log.error')} {driveError}</div>}
+              <div>{t('admin.log.responseSample')} {driveRaw ? driveRaw : t('admin.log.empty')}</div>
             </div>
           </details>
         </div>
 
         <div className="bg-white rounded-xl shadow mb-8">
           <div className="border-b px-6 py-4 flex items-center justify-between">
-            <div className="text-sm text-gray-600">Google Drive フォルダ内のファイル</div>
-            <div className="text-xs text-gray-500">更新日順</div>
+            <div className="text-sm text-gray-600">{t('admin.files.title')}</div>
+            <div className="text-xs text-gray-500">{t('admin.files.sortOrder')}</div>
           </div>
 
           <div className="divide-y">
             {driveStatus === 'missing' && (
-              <div className="p-6 text-sm text-gray-500">
-                環境変数 `VITE_GAS_DRIVE_ENDPOINT` を設定すると表示されます。
-              </div>
+              <div className="p-6 text-sm text-gray-500">{t('admin.files.missingEnv')}</div>
             )}
             {driveStatus === 'loading' && (
-              <div className="p-6 text-sm text-gray-500">取得中...</div>
+              <div className="p-6 text-sm text-gray-500">{t('admin.files.fetching')}</div>
             )}
             {driveStatus === 'error' && (
-              <div className="p-6 text-sm text-gray-500">
-                Google Drive の取得に失敗しました。権限設定やフォルダ共有設定を確認してください。
-              </div>
+              <div className="p-6 text-sm text-gray-500">{t('admin.files.fetchError')}</div>
             )}
             {driveStatus === 'ready' && driveFiles.length === 0 && (
-              <div className="p-6 text-sm text-gray-500">フォルダ内にファイルが見つかりません。</div>
+              <div className="p-6 text-sm text-gray-500">{t('admin.files.empty')}</div>
             )}
             {driveStatus === 'ready' &&
               driveFiles.map((file) => (
@@ -300,7 +300,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                       <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          <span>{formatDateTime(file.modifiedTime)}</span>
+                          <span>{formatDateTime(file.modifiedTime, language === 'ja' ? 'ja-JP' : 'en-US')}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Cloud className="w-4 h-4" />
@@ -317,7 +317,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                           disabled={approvingFileIds.includes(file.id)}
                           className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
                         >
-                          {approvingFileIds.includes(file.id) ? '承認中...' : '承認'}
+                          {approvingFileIds.includes(file.id) ? t('admin.approving') : t('admin.approve')}
                         </button>
                         <button
                           type="button"
@@ -325,7 +325,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                           disabled={rejectingFileIds.includes(file.id)}
                           className="text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
                         >
-                          {rejectingFileIds.includes(file.id) ? '削除中...' : '拒否'}
+                          {rejectingFileIds.includes(file.id) ? t('admin.rejecting') : t('admin.reject')}
                         </button>
                       </div>
                       {file.webViewLink ? (
@@ -335,14 +335,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
                           rel="noreferrer"
                           className="w-full text-center text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
-                          開く
+                          {t('admin.open')}
                         </a>
                       ) : (
                         <button
                           className="w-full text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed"
                           disabled
                         >
-                          リンクなし
+                          {t('admin.noLink')}
                         </button>
                       )}
                     </div>

@@ -2,6 +2,7 @@ import { useState, ChangeEvent } from 'react';
 import { ArrowLeft, Save, Upload, Loader2 } from 'lucide-react';
 import { areaOptions, termOptions, getAreaLabel } from '../constants/options';
 import { GAS_ENDPOINT } from '../constants/gas';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AssignmentFormProps {
   onNavigate: (page: 'assignment-list' | 'home') => void;
@@ -9,6 +10,7 @@ interface AssignmentFormProps {
 }
 
 export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps) {
+  const { t, language } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -30,7 +32,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      alert('ファイルをアップロードしてください');
+      alert(language === 'ja' ? 'ファイルをアップロードしてください' : 'Please upload a file');
       return;
     }
 
@@ -82,16 +84,18 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
       }
 
       if (response.ok && result?.status === 'success') {
-        alert(`課題を登録しました\n保存名: ${generatedFileName}`);
+        alert(language === 'ja'
+          ? `課題を登録しました\n保存名: ${generatedFileName}`
+          : `Assignment registered.\nSaved as: ${generatedFileName}`);
         onNavigate('assignment-list');
       } else {
-        const message = result?.message ? String(result.message) : text || '送信に失敗しました';
+        const message = result?.message ? String(result.message) : text || (language === 'ja' ? '送信に失敗しました' : 'Submission failed');
         throw new Error(message);
       }
     } catch (error) {
       console.error(error);
       const msg = error instanceof Error ? error.message : String(error);
-      alert(`エラーが発生しました\n${msg}`);
+      alert(language === 'ja' ? `エラーが発生しました\n${msg}` : `An error occurred\n${msg}`);
     } finally {
       setIsUploading(false);
     }
@@ -101,7 +105,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
     setFormData({ ...formData, [field]: value });
   };
 
-  const areaLabelForDisplay = getAreaLabel(formData.area) || '領域';
+  const areaLabelForDisplay = getAreaLabel(formData.area) || (language === 'ja' ? '領域' : 'Area');
 
   return (
     <div className="relative min-h-screen bg-gray-50">
@@ -110,9 +114,11 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-lg font-bold text-gray-800">課題データを送信中...</p>
+            <p className="text-lg font-bold text-gray-800">{t('form.assignment.uploading')}</p>
             <p className="text-sm text-gray-500 mt-2">
-              {areaLabelForDisplay}_{formData.subject}_第{formData.lectureNumber}回_課題 として保存しています
+              {language === 'ja'
+                ? `${areaLabelForDisplay}_${formData.subject}_第${formData.lectureNumber}回_課題 として保存しています`
+                : `Saving as ${areaLabelForDisplay}_${formData.subject}_Lecture${formData.lectureNumber}_Assignment`}
             </p>
           </div>
         </div>
@@ -126,28 +132,28 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 disabled:opacity-50"
         >
           <ArrowLeft className="w-5 h-5" />
-          キャンセル
+          {t('form.cancel')}
         </button>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">課題を登録</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('form.assignment.title')}</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* 基本情報 */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">基本情報</h2>
-              
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">{t('form.basicInfo')}</h2>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    科目名 <span className="text-red-500">*</span>
+                    {t('form.subject')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.subject}
                     onChange={(e) => handleChange('subject', e.target.value)}
-                    placeholder="例：データ構造とアルゴリズム"
+                    placeholder={language === 'ja' ? '例：データ構造とアルゴリズム' : 'e.g. Data Structures and Algorithms'}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
                     required
                     disabled={isUploading}
@@ -156,10 +162,10 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    第何回講義 <span className="text-red-500">*</span>
+                    {t('form.assignment.lectureNumber')} <span className="text-red-500">*</span>
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-600 font-medium">第</span>
+                    {t('form.assignment.lecturePrefix') && <span className="text-gray-600 font-medium">{t('form.assignment.lecturePrefix')}</span>}
                     <input
                       type="number"
                       value={formData.lectureNumber}
@@ -171,7 +177,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                       required
                       disabled={isUploading}
                     />
-                    <span className="text-gray-600 font-medium">回</span>
+                    {t('form.assignment.lectureSuffix') && <span className="text-gray-600 font-medium">{t('form.assignment.lectureSuffix')}</span>}
                   </div>
                 </div>
               </div>
@@ -179,7 +185,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    領域 <span className="text-red-500">*</span>
+                    {t('form.area')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.area}
@@ -188,16 +194,16 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     required
                     disabled={isUploading}
                   >
-                    <option value="">選択してください</option>
+                    <option value="">{t('form.pleaseSelect')}</option>
                     {areaOptions.map((area) => (
-                      <option key={area.key} value={area.key}>{area.label}</option>
+                      <option key={area.key} value={area.key}>{t(`area.${area.key}`)}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    開講期 <span className="text-red-500">*</span>
+                    {t('form.semester')} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.semester}
@@ -206,16 +212,16 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                     required
                     disabled={isUploading}
                   >
-                    <option value="">選択してください</option>
+                    <option value="">{t('form.pleaseSelect')}</option>
                     {termOptions.map((term) => (
-                      <option key={term.key} value={term.key}>{term.label}</option>
+                      <option key={term.key} value={term.key}>{t(`term.${term.key}`)}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    年度 <span className="text-red-500">*</span>
+                    {t('form.year')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -233,22 +239,21 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
 
             {/* 添付ファイル */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">課題ファイル</h2>
+              <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">{t('form.assignment.fileSection')}</h2>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ファイル（PDF, 写真, コードなど） <span className="text-red-500">*</span>
+                  {t('form.assignment.fileLabel')} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center justify-center w-full">
                   <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${file ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                       <Upload className={`w-8 h-8 mb-2 ${file ? 'text-blue-500' : 'text-gray-400'}`} />
                       <p className="text-sm text-gray-600 truncate max-w-xs">
-                        {file ? file.name : "クリックしてファイルをアップロード"}
+                        {file ? file.name : t('form.fileUpload')}
                       </p>
-                      {/* 保存名のプレビュー */}
                       {file && !isUploading && (
                         <p className="text-xs text-blue-500 mt-2 font-medium">
-                          保存名: {areaLabelForDisplay}_{formData.subject || "科目"}_第{formData.lectureNumber || "X"}回_課題
+                          {t('form.saveName')} {areaLabelForDisplay}_{formData.subject || (language === 'ja' ? '科目' : 'Subject')}_第{formData.lectureNumber || 'X'}回_課題
                         </p>
                       )}
                     </div>
@@ -274,7 +279,7 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                 disabled={isUploading}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                キャンセル
+                {t('form.cancel')}
               </button>
               <button
                 type="submit"
@@ -284,12 +289,12 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                 {isUploading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    送信中...
+                    {t('form.submitting')}
                   </>
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    登録する
+                    {t('form.submit')}
                   </>
                 )}
               </button>
