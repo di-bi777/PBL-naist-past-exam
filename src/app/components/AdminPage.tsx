@@ -23,6 +23,7 @@ type DriveFile = {
 
 const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
+const ADMIN_TOKEN_STORAGE_KEY = 'admin_api_token';
 
 const formatBytes = (bytes?: string) => {
   if (!bytes) return '—';
@@ -52,6 +53,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [driveRaw, setDriveRaw] = useState<string>('');
   const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
   const [rejectingFileIds, setRejectingFileIds] = useState<string[]>([]);
+
+  const getAdminToken = () => {
+    const cached = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+    if (cached) return cached;
+    const input = window.prompt('管理者トークンを入力してください');
+    const token = input?.trim() ?? '';
+    if (!token) return '';
+    sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    return token;
+  };
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -88,7 +99,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const driveSummary = useMemo(() => {
     if (driveStatus === 'missing') {
-      return 'GAS 連携の設定が未完了です（VITE_GAS_DRIVE_ENDPOINT）。';
+      return 'GAS 連携の設定が未完了です（VITE_NETLIFY_FUNCTIONS_BASE）。';
     }
     if (driveStatus === 'loading') {
       return 'Google Drive からフォルダ内容を取得しています。';
@@ -203,7 +214,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const handleApprove = async (file: DriveFile) => {
     if (!GAS_APPROVE_ENDPOINT) {
-      alert('承認エンドポイントが未設定です。VITE_GAS_APPROVE_ENDPOINT を確認してください。');
+      alert('承認エンドポイントが未設定です。VITE_NETLIFY_FUNCTIONS_BASE を確認してください。');
       return;
     }
 
@@ -211,6 +222,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       `ファイル「${file.name}」を承認して Approved フォルダへ移動します。\n実行しますか？`
     );
     if (!confirmed) return;
+    const adminToken = getAdminToken();
+    if (!adminToken) {
+      alert('管理者トークンが未入力です。');
+      return;
+    }
 
     setApprovingFileIds((prev) => [...prev, file.id]);
     try {
@@ -218,7 +234,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       const response = await fetch(url, {
         method: 'POST',
         // Apps Script Web App への JSON POST は preflight で失敗しやすいため simple request で送信。
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+          'x-admin-token': adminToken,
+        },
         body: JSON.stringify({
           fileId: file.id,
           approvedFolderId: APPROVED_FOLDER_ID,
@@ -251,7 +270,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const handleReject = async (file: DriveFile) => {
     if (!GAS_REJECT_ENDPOINT) {
-      alert('拒否エンドポイントが未設定です。VITE_GAS_REJECT_ENDPOINT を確認してください。');
+      alert('拒否エンドポイントが未設定です。VITE_NETLIFY_FUNCTIONS_BASE を確認してください。');
       return;
     }
 
@@ -259,6 +278,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       `ファイル「${file.name}」を削除します。\nこの操作は取り消せません。実行しますか？`
     );
     if (!confirmed) return;
+    const adminToken = getAdminToken();
+    if (!adminToken) {
+      alert('管理者トークンが未入力です。');
+      return;
+    }
 
     setRejectingFileIds((prev) => [...prev, file.id]);
     try {
@@ -287,7 +311,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       for (const req of requests) {
         const response = await fetch(req.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+            'x-admin-token': adminToken,
+          },
           body: JSON.stringify(req.body),
         });
         const text = await response.text();
@@ -488,7 +515,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <div className="divide-y">
               {driveStatus === 'missing' && (
                 <div className="p-6 text-sm text-gray-500">
-                  環境変数 `VITE_GAS_DRIVE_ENDPOINT` を設定すると表示されます。
+                  環境変数 `VITE_NETLIFY_FUNCTIONS_BASE` を設定すると表示されます。
                 </div>
               )}
               {driveStatus === 'loading' && (
