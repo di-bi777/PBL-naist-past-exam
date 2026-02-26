@@ -17,7 +17,6 @@ interface AdminPageProps {
 
 const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
-const ADMIN_TOKEN_STORAGE_KEY = 'admin_api_token';
 
 
 export function AdminPage({ onBack }: AdminPageProps) {
@@ -29,15 +28,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
   const [rejectingFileIds, setRejectingFileIds] = useState<string[]>([]);
 
-  const getAdminToken = () => {
-    const cached = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-    if (cached) return cached;
-    const input = window.prompt(t('admin.token.prompt'));
-    const token = input?.trim() ?? '';
-    if (!token) return '';
-    sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-    return token;
-  };
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -120,11 +110,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
       : `Approve file "${file.name}" and move it to the Approved folder.\nProceed?`
     );
     if (!confirmed) return;
-    const adminToken = getAdminToken();
-    if (!adminToken) {
-      alert(t('admin.token.missing'));
-      return;
-    }
 
     setApprovingFileIds((prev) => [...prev, file.id]);
     try {
@@ -134,7 +119,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
         // Apps Script Web App への JSON POST は preflight で失敗しやすいため simple request で送信。
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
-          'x-admin-token': adminToken,
         },
         body: JSON.stringify({
           fileId: file.id,
@@ -179,11 +163,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
       : `Delete file "${file.name}".\nThis action cannot be undone. Proceed?`
     );
     if (!confirmed) return;
-    const adminToken = getAdminToken();
-    if (!adminToken) {
-      alert(t('admin.token.missing'));
-      return;
-    }
 
     setRejectingFileIds((prev) => [...prev, file.id]);
     try {
@@ -214,7 +193,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8',
-            'x-admin-token': adminToken,
           },
           body: JSON.stringify(req.body),
         });

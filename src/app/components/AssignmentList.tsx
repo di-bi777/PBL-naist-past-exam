@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Search, Plus, Calendar, BookOpen, ArrowLeft, User } from 'lucide-react';
-import { areaOptions, termOptions, getAreaLabel, getTermLabel } from '../constants/options';
+import { useState, useEffect } from 'react';
+import { Search, Plus, Calendar, BookOpen, ArrowLeft, User, Loader2 } from 'lucide-react';
+import { areaOptions, termOptions } from '../constants/options';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export interface Assignment {
   id: string;
@@ -23,100 +24,134 @@ interface AssignmentListProps {
   onShowForm: () => void;
 }
 
-// モックデータ
-export const assignmentMocks: Assignment[] = [
-  {
-    id: '1',
-    title: 'データ構造とアルゴリズムのレポート課題',
-    subject: 'データ構造とアルゴリズム',
-    area: 'cs',
-    semester: 'spring',
-    year: 2025,
-    type: 'レポート',
-    fileName: 'report_datastructures.pdf',
-    fileSize: '1.2MB',
-    storageProvider: 'Google Drive',
-    fileUrl: '',
-    uploadedBy: '山田太郎',
-    uploadedAt: '2026-01-10',
-  },
-  {
-    id: '2',
-    title: '有機化学実験レポート',
-    subject: '有機化学実験',
-    area: 'bio',
-    semester: 'fall',
-    year: 2024,
-    type: 'レポート',
-    fileName: 'organic_lab_report.docx',
-    fileSize: '840KB',
-    storageProvider: 'Google Drive',
-    fileUrl: '',
-    uploadedBy: '佐藤花子',
-    uploadedAt: '2025-12-05',
-  },
-  {
-    id: '3',
-    title: '英語プレゼンテーション課題',
-    subject: '学術英語II',
-    area: 'cs',
-    semester: 'spring',
-    year: 2025,
-    type: 'プレゼンテーション',
-    fileName: 'english_presentation.pptx',
-    fileSize: '5.6MB',
-    storageProvider: 'Google Drive',
-    fileUrl: '',
-    uploadedBy: '鈴木一郎',
-    uploadedAt: '2026-01-08',
-  },
-  {
-    id: '4',
-    title: '物理学演習問題集',
-    subject: '物理学I',
-    area: 'mat',
-    semester: 'spring',
-    year: 2025,
-    type: '演習問題',
-    fileName: 'physics_exercises.pdf',
-    fileSize: '2.4MB',
-    storageProvider: 'Google Drive',
-    fileUrl: '',
-    uploadedBy: '田中次郎',
-    uploadedAt: '2026-01-12',
-  },
-  {
-    id: '5',
-    title: '経済学レポート：市場分析',
-    subject: 'ミクロ経済学',
-    area: 'bio',
-    semester: 'fall',
-    year: 2024,
-    type: 'レポート',
-    fileName: 'microeconomics_market_analysis.pdf',
-    fileSize: '1.8MB',
-    storageProvider: 'Google Drive',
-    fileUrl: '',
-    uploadedBy: '高橋美咲',
-    uploadedAt: '2025-11-28',
-  },
-];
+const areaToTranslationKey: Record<string, string> = {
+  '情報科学領域': 'area.Information',
+  'バイオサイエンス領域': 'area.Biological',
+  '物質創生科学領域': 'area.Materials',
+  '物質創成科学領域': 'area.Materials',
+};
+
+const semesterToTranslationKey: Record<string, string> = {
+  '春学期': 'term.spring',
+  '秋学期': 'term.fall',
+};
 
 export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) {
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
 
-  const areas = [{ key: 'all', label: '全ての領域' }, ...areaOptions];
-  const semesters = [{ key: 'all', label: '全ての開講期' }, ...termOptions];
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filteredAssignments = assignmentMocks.filter((assignment) => {
+  // 先ほど設定した環境変数を使用
+  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        // 新しく作成するGASのエンドポイントパス（assignments用）を指定
+        const url = `${GAS_ENDPOINT}?path=get_approved_assignments`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const json = await response.json();
+        console.log("GASからの生データ:", json); // ← これを追記
+
+        const rawData = json.data || [];
+        console.log("フィルタ前のデータ数:", rawData.length); // ← これを追記
+
+
+        // DBのヘッダー情報をReactのAssignment型にマッピング（変換）する
+        const formattedAssignments: Assignment[] = rawData
+          .filter((row: any) => row.type === 'approved')
+          .map((row: any) => ({
+            id: String(row.id),
+            // DBにtitleがないため、科目名と第何回かで自動生成
+            title: language === 'ja'
+              ? `${row.subject} (第${row.lecture_no || '?'}回)`
+              : `${row.subject} (Lecture ${row.lecture_no || '?'})`,
+            subject: String(row.subject),
+            area: String(row.area),
+            semester: String(row.term),
+            year: Number(row.year),
+            type: t('assignmentList.type'),
+            fileName: '', // DBに無い項目
+            fileSize: '', // DBに無い項目
+            storageProvider: 'Google Drive',
+            fileUrl: String(row.file_url || ''),
+            uploadedBy: t('assignmentList.unknown'),
+            uploadedAt: row.created_at
+              ? new Date(row.created_at).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')
+              : '',
+          }));
+
+        setAssignments(formattedAssignments);
+      } catch (err) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : t('assignmentList.fetchError'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAssignments();
+  }, [GAS_ENDPOINT]);
+
+  const getAreaLabel = (area: string) => {
+    if (area === 'all') return t('assignmentList.area.all');
+    const key = areaToTranslationKey[area];
+    return key ? t(key) : area;
+  };
+
+  const getSemesterLabel = (semester: string) => {
+    if (semester === 'all') return t('assignmentList.semester.all');
+    const key = semesterToTranslationKey[semester];
+    return key ? t(key) : semester;
+  };
+
+  const areas = [{ key: 'all' }, ...areaOptions];
+  const semesters = [{ key: 'all' }, ...termOptions];
+
+  const filteredAssignments = assignments.filter((assignment) => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          assignment.subject.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesArea = selectedArea === 'all' || assignment.area === selectedArea;
     const matchesSemester = selectedSemester === 'all' || assignment.semester === selectedSemester;
     return matchesSearch && matchesArea && matchesSemester;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">{t('assignmentList.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+          >
+            {t('assignmentList.reload')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,19 +163,19 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
-            ホームに戻る
+            {t('assignmentList.backToHome')}
           </button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">課題情報</h1>
-              <p className="text-gray-600 mt-2">授業の課題を検索・閲覧</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('assignmentList.title')}</h1>
+              <p className="text-gray-600 mt-2">{t('assignmentList.subtitle')}</p>
             </div>
             <button
               onClick={onShowForm}
               className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              課題を登録
+              {t('assignmentList.register')}
             </button>
           </div>
         </div>
@@ -155,7 +190,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="科目名・タイトルで検索"
+                  placeholder={t('assignmentList.search.placeholder')}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -169,7 +204,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
               >
                 {areas.map((area) => (
                   <option key={area.key} value={area.key}>
-                    {area.label}
+                    {getAreaLabel(area.key)}
                   </option>
                 ))}
               </select>
@@ -183,7 +218,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
               >
                 {semesters.map((semester) => (
                   <option key={semester.key} value={semester.key}>
-                    {semester.label}
+                    {getSemesterLabel(semester.key)}
                   </option>
                 ))}
               </select>
@@ -193,7 +228,9 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
 
         {/* 検索結果 */}
         <div className="mb-4 text-gray-600">
-          {filteredAssignments.length}件の課題情報が見つかりました
+          {language === 'ja'
+            ? `${filteredAssignments.length}件の課題情報が見つかりました`
+            : `${filteredAssignments.length} assignment(s) found`}
         </div>
 
         {/* 課題リスト */}
@@ -208,23 +245,25 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                      {getAreaLabel(assignment.area) || assignment.area}
+                      {getAreaLabel(assignment.area)}
                     </span>
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {getTermLabel(assignment.semester) || assignment.semester}
+                      {getSemesterLabel(assignment.semester)}
                     </span>
                     <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
                       {assignment.type}
                     </span>
-                    <span className="text-gray-500 text-sm">{assignment.year}年度</span>
+                    <span className="text-gray-500 text-sm">
+                      {language === 'ja' ? `${assignment.year}年度` : String(assignment.year)}
+                    </span>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{assignment.title}</h3>
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
                     <BookOpen className="w-4 h-4" />
                     <span>{assignment.subject}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="w-4 h-4" />
@@ -232,7 +271,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      <span>投稿: {assignment.uploadedAt}</span>
+                      <span>{t('assignmentList.postedDate')}{assignment.uploadedAt}</span>
                     </div>
                   </div>
                 </div>

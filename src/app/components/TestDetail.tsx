@@ -39,7 +39,8 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const GAS_ENDPOINT = import.meta.env.VITE_GAS_EXAM_DISPLAY_ENDPOINT as string;
+  // 先ほど設定した環境変数を使用
+  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
 
   useEffect(() => {
     const fetchDetail = async () => {

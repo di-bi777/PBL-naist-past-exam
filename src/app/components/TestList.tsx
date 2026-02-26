@@ -45,12 +45,13 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const GAS_EXAM_DISPLAY_ENDPOINT = import.meta.env.VITE_GAS_EXAM_DISPLAY_ENDPOINT as string;
+  const GAS_EXAM_DISPLAY_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
 
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const response = await fetch(GAS_EXAM_DISPLAY_ENDPOINT);
+        const url = `${GAS_EXAM_DISPLAY_ENDPOINT}?path=get_approved_exams`;
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -64,6 +65,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
 
         const rawData = json.data || [];
 
+        // ★ 修正ポイント2: GAS側ですでにフィルタされているはずですが、念のためマッピング処理のみ抽出
         const formattedTests: Test[] = rawData.map((row: any) => ({
           id: String(row.id),
           title: `${row.subject} (${row.year})`,
@@ -91,11 +93,34 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       }
     };
 
-    fetchTests();
-  }, []);
+    if (GAS_EXAM_DISPLAY_ENDPOINT) {
+        fetchTests();
+    } else {
+        setError('エンドポイントが設定されていません。');
+        setIsLoading(false);
+    }
+  }, [GAS_EXAM_DISPLAY_ENDPOINT]);
 
-  const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
-  const semesters = ['all', '春学期', '秋学期'];
+  // ★ 修正ポイント3: スプレッドシートに入っている生の値（または key）に合わせて選択肢を定義
+  // もし options.ts を使っているなら、そちらを import して使う方がより安全です
+  const areas = [
+    { value: 'all', label: '全ての領域' },
+    { value: 'is', label: '情報科学領域' },
+    { value: 'bs', label: 'バイオサイエンス領域' },
+    { value: 'ms', label: '物質創成科学領域' },
+    // 英語表記など、スプシの実態に合わせて追加・修正してください
+    { value: '情報科学領域', label: '情報科学領域(直接)' },
+    { value: 'バイオサイエンス領域', label: 'バイオサイエンス領域(直接)' },
+    { value: '物質創成科学領域', label: '物質創成科学領域(直接)' }
+  ];
+  
+  const semesters = [
+    { value: 'all', label: '全ての開講期' },
+    { value: 'spring', label: '春学期' },
+    { value: 'fall', label: '秋学期' },
+    { value: '春学期', label: '春学期(直接)' },
+    { value: '秋学期', label: '秋学期(直接)' }
+  ];
 
   const getAreaLabel = (area: string) => {
     if (area === 'all') return t('testList.area.all');
@@ -112,8 +137,11 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          test.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // 値が 'all' の場合はパス、それ以外は部分一致か完全一致で判定
     const matchesArea = selectedArea === 'all' || test.area === selectedArea;
     const matchesSemester = selectedSemester === 'all' || test.semester === selectedSemester;
+    
     return matchesSearch && matchesArea && matchesSemester;
   });
 
@@ -192,8 +220,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {areas.map((area) => (
-                  <option key={area} value={area}>
-                    {getAreaLabel(area)}
+                  <option key={area.value} value={area.value}>
+                    {getAreaLabel(area.value)}
                   </option>
                 ))}
               </select>
@@ -206,8 +234,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {semesters.map((semester) => (
-                  <option key={semester} value={semester}>
-                    {getSemesterLabel(semester)}
+                  <option key={semester.value} value={semester.value}>
+                    {getSemesterLabel(semester.value)}
                   </option>
                 ))}
               </select>

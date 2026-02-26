@@ -1,15 +1,11 @@
-const DEFAULT_NETLIFY_FUNCTIONS_BASE = 'https://lucent-syrniki-9cfdd9.netlify.app';
-const netlifyBase =
-  (import.meta.env.VITE_NETLIFY_FUNCTIONS_BASE as string | undefined)?.trim() ||
-  DEFAULT_NETLIFY_FUNCTIONS_BASE;
-const normalizedBase = netlifyBase.replace(/\/+$/, '');
-const hasValidBase = Boolean(normalizedBase);
-const proxyBase = hasValidBase ? `${normalizedBase}/.netlify/functions/gas-proxy` : undefined;
+export const GAS_DRIVE_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbxkUP8mHxPPhjErsPfGoqujWnjswyqxRHFDVvaDNYIs2GbxIULpsi1MaWE9njy22lVj/exec';
 
-const buildRoute = (route: 'drive' | 'approve' | 'reject' | 'db') =>
-  proxyBase ? `${proxyBase}?route=${route}` : undefined;
+export const GAS_APPROVE_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbw9128Y54EpEKkjgU-vo8GWsIpq4AxC_3zI0XKxq7Tcsth9ppxfFg1KtfYMp6x1tJaY/exec';
 
-export const GAS_DRIVE_ENDPOINT = buildRoute('drive');
-export const GAS_APPROVE_ENDPOINT = buildRoute('approve');
-export const GAS_REJECT_ENDPOINT = buildRoute('reject');
-export const GAS_DB_ENDPOINT = buildRoute('db');
+export const GAS_REJECT_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbynRSBFmIQU05U9ysAmbR4K201bxh8O8i7KE2abLQvNrt3h2kNUNy8XkLE1o1dHm2WH/exec';
+
+export const GAS_DB_ENDPOINT =
+  'https://script.google.com/macros/s/AKfycbz82oLtCK3eqpzWBEhbIYyL0ur8nm9dC-JJZukY9eBL0opwhg_DQwZjhSLpJi9Q4J_n/exec';
