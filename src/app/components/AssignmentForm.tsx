@@ -65,7 +65,8 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
         type: '課題', // スプレッドシート側で判別できるようにタイプを固定
       };
 
-      const response = await fetch(`${GAS_ENDPOINT}?path=upload_assignment`, {
+      const uploadUrl = `${GAS_ENDPOINT}${GAS_ENDPOINT.includes('?') ? '&' : '?'}route=upload&path=upload_assignment`;
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify(payload),

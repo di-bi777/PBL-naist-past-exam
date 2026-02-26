@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'; // useEffectを追加
 import { Search, Plus, ThumbsUp, ThumbsDown, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
+import { GAS_ENDPOINT } from '../constants/gas';
 
 interface Test {
   id: string;
@@ -30,14 +31,12 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // GASのURL (doPostと同じURLでOK)
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyeejxUY7FJ-omW-CeSm9Ww_Gk-rN4iLqFr9Bf0SrkwEhys-XaLQY5SPU0IaEwHakwE/exec';
-
   // 初回レンダリング時にデータを取得
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const response = await fetch(GAS_ENDPOINT);
+        const displayUrl = `${GAS_ENDPOINT}${GAS_ENDPOINT.includes('?') ? '&' : '?'}route=upload`;
+        const response = await fetch(displayUrl);
         if (!response.ok) {
           throw new Error('データの取得に失敗しました');
         }

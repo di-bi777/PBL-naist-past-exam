@@ -62,7 +62,8 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
         mimeType: file.type,
       };
 
-      const response = await fetch(`${GAS_ENDPOINT}?path=upload_exam`, {
+      const uploadUrl = `${GAS_ENDPOINT}${GAS_ENDPOINT.includes('?') ? '&' : '?'}route=upload&path=upload_exam`;
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify(payload),
