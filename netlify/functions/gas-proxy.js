@@ -11,7 +11,7 @@ export const handler = async (event) => {
     const route = event.queryStringParameters?.route || "reject";
     const needsAdminToken = route === "approve" || route === "reject";
     if (needsAdminToken) {
-      const expectedToken = process.env.ADMIN_API_TOKEN || process.env.VITE_ADMIN_API_TOKEN;
+      const expectedToken = process.env.ADMIN_API_TOKEN;
       const providedToken =
         event.headers?.["x-admin-token"] || event.headers?.["X-Admin-Token"] || "";
       if (!expectedToken || providedToken !== expectedToken) {
