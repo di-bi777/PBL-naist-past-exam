@@ -14,6 +14,7 @@ const translations: Record<Language, Record<string, string>> = {
     'header.title': '過去問共有プラットフォーム',
     'header.logout': 'ログアウト',
     'header.login': 'ログイン',
+    'header.admin': '管理者',
 
     // HomePage
     'home.title': '過去問共有プラットフォーム',
@@ -109,6 +110,7 @@ const translations: Record<Language, Record<string, string>> = {
     'header.title': 'Past Exam Sharing Platform',
     'header.logout': 'Log Out',
     'header.login': 'Log In',
+    'header.admin': 'Admin',
 
     // HomePage
     'home.title': 'Past Exam Sharing Platform',

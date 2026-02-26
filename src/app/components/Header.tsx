@@ -43,7 +43,7 @@ export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigat
                   className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg px-2 py-1 transition-colors"
                 >
                   <User className="w-5 h-5" />
-                  <span className="text-sm">{username}</span>
+                  <span className="text-sm">{username === 'admin' ? t('header.admin') : username}</span>
                 </button>
                 <button
                   type="button"
