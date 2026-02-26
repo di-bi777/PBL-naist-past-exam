@@ -1,4 +1,4 @@
-import { BookOpen, User, LogOut, LogIn, Globe } from 'lucide-react';
+import { BookOpen, User, LogOut, Globe } from 'lucide-react';
 import { useLanguage } from '@/app/contexts/LanguageContext';
 
 interface HeaderProps {
@@ -46,6 +46,7 @@ export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigat
                   <span className="text-sm">{username}</span>
                 </button>
                 <button
+                  type="button"
                   onClick={onLogout}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -53,15 +54,7 @@ export function Header({ isLoggedIn, username, onLogout, onLogin, onAdminNavigat
                   {t('header.logout')}
                 </button>
               </>
-            ) : (
-              <button
-                onClick={onLogin}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <LogIn className="w-4 h-4" />
-                {t('header.login')}
-              </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
