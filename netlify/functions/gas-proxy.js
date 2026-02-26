@@ -11,7 +11,7 @@ export const handler = async (event) => {
     const route = event.queryStringParameters?.route || "reject";
     const needsAdminToken = route === "approve" || route === "reject";
     if (needsAdminToken) {
-      const expectedToken = process.env.ADMIN_API_TOKEN || process.env.VITE_ADMIN_API_TOKEN;
+      const expectedToken = process.env.ADMIN_API_TOKEN;
       const providedToken =
         event.headers?.["x-admin-token"] || event.headers?.["X-Admin-Token"] || "";
       if (!expectedToken || providedToken !== expectedToken) {
@@ -24,6 +24,7 @@ export const handler = async (event) => {
       approve: process.env.GAS_APPROVE_ENDPOINT || process.env.VITE_GAS_APPROVE_ENDPOINT,
       db: process.env.GAS_DB_ENDPOINT || process.env.VITE_GAS_DB_ENDPOINT,
       drive: process.env.GAS_DRIVE_ENDPOINT || process.env.VITE_GAS_DRIVE_ENDPOINT,
+      upload: process.env.GAS_ENDPOINT || process.env.VITE_GAS_ENDPOINT,
     };
     const gasBase = endpointMap[route];
     if (!gasBase) {

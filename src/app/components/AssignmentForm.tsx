@@ -253,7 +253,10 @@ export function AssignmentForm({ onNavigate, previousPage }: AssignmentFormProps
                       </p>
                       {file && !isUploading && (
                         <p className="text-xs text-blue-500 mt-2 font-medium">
-                          {t('form.saveName')} {areaLabelForDisplay}_{formData.subject || (language === 'ja' ? '科目' : 'Subject')}_第{formData.lectureNumber || 'X'}回_課題
+                          {t('form.saveName')}{' '}
+                          {language === 'ja'
+                            ? `${areaLabelForDisplay}_${formData.subject || '科目'}_第${formData.lectureNumber || 'X'}回_課題`
+                            : `${areaLabelForDisplay}_${formData.subject || 'Subject'}_Lecture${formData.lectureNumber || 'X'}_Assignment`}
                         </p>
                       )}
                     </div>
