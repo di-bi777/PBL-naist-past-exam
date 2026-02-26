@@ -28,4 +28,4 @@ GAS_REJECT_ENDPOINT={reject_pending_fileのデプロイURL}
 
 GAS_DB_ENDPOINT={doGet(DB)のデプロイURL}
 
-ADMIN_API_TOKEN={承認/拒否で使う管理者トークン}
+Netlify の Environment variables に管理者トークンを設定してください（値は公開しない）
