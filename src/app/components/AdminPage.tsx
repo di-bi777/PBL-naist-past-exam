@@ -24,6 +24,7 @@ type DriveFile = {
 
 const GAS_REJECT_PATH = 'remove_pending_file';
 const APPROVED_FOLDER_ID = '1hh9XU2f80S157AqzrlMsD58iqBIWitz1';
+const ADMIN_TOKEN_STORAGE_KEY = 'admin_api_token';
 
 const formatBytes = (bytes?: string) => {
   if (!bytes) return '—';
@@ -54,6 +55,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [driveRaw, setDriveRaw] = useState<string>('');
   const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
   const [rejectingFileIds, setRejectingFileIds] = useState<string[]>([]);
+
+  const getAdminToken = () => {
+    const cached = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+    if (cached) return cached;
+    const input = window.prompt(t('admin.token.prompt'));
+    const token = input?.trim() ?? '';
+    if (!token) return '';
+    sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    return token;
+  };
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -212,6 +223,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       : `Approve file "${file.name}" and move it to the Approved folder.\nProceed?`
     );
     if (!confirmed) return;
+    const adminToken = getAdminToken();
+    if (!adminToken) {
+      alert(t('admin.token.missing'));
+      return;
+    }
 
     setApprovingFileIds((prev) => [...prev, file.id]);
     try {
@@ -219,7 +235,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       const response = await fetch(url, {
         method: 'POST',
         // Apps Script Web App への JSON POST は preflight で失敗しやすいため simple request で送信。
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+          'x-admin-token': adminToken,
+        },
         body: JSON.stringify({
           fileId: file.id,
           approvedFolderId: APPROVED_FOLDER_ID,
@@ -263,6 +282,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       : `Delete file "${file.name}".\nThis action cannot be undone. Proceed?`
     );
     if (!confirmed) return;
+    const adminToken = getAdminToken();
+    if (!adminToken) {
+      alert(t('admin.token.missing'));
+      return;
+    }
 
     setRejectingFileIds((prev) => [...prev, file.id]);
     try {
@@ -291,7 +315,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       for (const req of requests) {
         const response = await fetch(req.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+            'x-admin-token': adminToken,
+          },
           body: JSON.stringify(req.body),
         });
         const text = await response.text();
@@ -359,42 +386,42 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 {tag.matchType === 'heuristic' && (
                   <span className="px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
-                    推定一致
+                    {t('admin.tag.estimated')}
                   </span>
                 )}
                 {tag.subject && (
                   <span className="px-2 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
-                    科目: {tag.subject}
+                    {t('admin.tag.subject')} {tag.subject}
                   </span>
                 )}
                 {tag.instructor && (
                   <span className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    教員: {tag.instructor}
+                    {t('admin.tag.instructor')} {tag.instructor}
                   </span>
                 )}
                 {tag.area && (
                   <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    領域: {tag.area}
+                    {t('admin.tag.area')} {tag.area}
                   </span>
                 )}
                 {tag.term && (
                   <span className="px-2 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-                    開講期: {tag.term}
+                    {t('admin.tag.term')} {tag.term}
                   </span>
                 )}
                 {tag.year && (
                   <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    年度: {tag.year}
+                    {t('admin.tag.year')} {tag.year}
                   </span>
                 )}
                 {tag.type && (
                   <span className="px-2 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                    状態: {tag.type}
+                    {t('admin.tag.type')} {tag.type}
                   </span>
                 )}
                 {tag.allowedMaterialsStr && (
                   <span className="px-2 py-1 rounded-full bg-slate-50 text-slate-700 border border-slate-200">
-                    持込: {tag.allowedMaterialsStr}
+                    {t('admin.tag.materials')} {tag.allowedMaterialsStr}
                   </span>
                 )}
               </div>

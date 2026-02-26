@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Lock, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LoginPageProps {
   onLogin: (username: string) => void;
@@ -7,6 +8,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin, onBack }: LoginPageProps) {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -25,20 +27,20 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          戻る
+          {t('login.back')}
         </button>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
             <User className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">管理者ログイン</h2>
-          <p className="text-gray-600 mt-2">管理者ページへ進むためにログインしてください</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('login.title')}</h2>
+          <p className="text-gray-600 mt-2">{t('login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              ユーザー名
+              {t('login.username')}
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -48,7 +50,7 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                placeholder="ユーザー名を入力"
+                placeholder={t('login.username.placeholder')}
                 required
               />
             </div>
@@ -56,7 +58,7 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              パスワード
+              {t('login.password')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -66,7 +68,7 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                placeholder="パスワードを入力"
+                placeholder={t('login.password.placeholder')}
                 required
               />
             </div>
@@ -77,7 +79,7 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
             disabled={!username || !password}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            管理者ログイン
+            {t('login.submit')}
           </button>
         </form>
 

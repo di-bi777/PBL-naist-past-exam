@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'; // useEffectを追加
-import { Search, Plus, ThumbsUp, ThumbsDown, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Plus, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Test {
   id: string;
@@ -13,6 +14,8 @@ interface Test {
   commentCount: number;
   uploadedBy: string;
   uploadedAt: string;
+  pdfUrl: string;
+  type: string;
 }
 
 interface TestListProps {
@@ -20,38 +23,69 @@ interface TestListProps {
   onShowForm: () => void;
 }
 
+const areaToTranslationKey: Record<string, string> = {
+  '情報科学領域': 'area.Information',
+  'バイオサイエンス領域': 'area.Biological',
+  '物質創生科学領域': 'area.Materials',
+  '物質創成科学領域': 'area.Materials',
+};
+
+const semesterToTranslationKey: Record<string, string> = {
+  '春学期': 'term.spring',
+  '秋学期': 'term.fall',
+};
+
 export function TestList({ onNavigate, onShowForm }: TestListProps) {
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
-  
-  // データ取得用のState
+
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // GASのURL (doPostと同じURLでOK)
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyeejxUY7FJ-omW-CeSm9Ww_Gk-rN4iLqFr9Bf0SrkwEhys-XaLQY5SPU0IaEwHakwE/exec';
+  const GAS_EXAM_DISPLAY_ENDPOINT = import.meta.env.VITE_GAS_EXAM_DISPLAY_ENDPOINT as string;
 
-  // 初回レンダリング時にデータを取得
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const response = await fetch(GAS_ENDPOINT);
+        const response = await fetch(GAS_EXAM_DISPLAY_ENDPOINT);
+
         if (!response.ok) {
-          throw new Error('データの取得に失敗しました');
-        }
-        const data = await response.json();
-        
-        // エラーオブジェクトが返ってきていないか確認
-        if (data.error) {
-          throw new Error(data.error);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        setTests(data);
+        const json = await response.json();
+
+        if (json.status === 'error' || json.error) {
+          throw new Error(json.message || json.error || 'データの取得に失敗しました');
+        }
+
+        const rawData = json.data || [];
+
+        const formattedTests: Test[] = rawData.map((row: any) => ({
+          id: String(row.id),
+          title: `${row.subject} (${row.year})`,
+          subject: String(row.subject),
+          area: String(row.area),
+          semester: String(row.term),
+          year: Number(row.year),
+          upvotes: 0,
+          downvotes: 0,
+          commentCount: 0,
+          uploadedBy: String(row.instructor || ''),
+          uploadedAt: row.created_at
+            ? new Date(row.created_at).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')
+            : '',
+          pdfUrl: String(row.pdf_url || ''),
+          type: String(row.type),
+        }));
+
+        setTests(formattedTests);
       } catch (err) {
         console.error(err);
-        setError('過去問データの読み込みに失敗しました。');
+        setError(err instanceof Error ? err.message : t('testList.fetchError'));
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +97,18 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const areas = ['all', '情報科学領域', 'バイオサイエンス領域', '物質創成科学領域'];
   const semesters = ['all', '春学期', '秋学期'];
 
-  // フィルタリング処理
+  const getAreaLabel = (area: string) => {
+    if (area === 'all') return t('testList.area.all');
+    const key = areaToTranslationKey[area];
+    return key ? t(key) : area;
+  };
+
+  const getSemesterLabel = (semester: string) => {
+    if (semester === 'all') return t('testList.semester.all');
+    const key = semesterToTranslationKey[semester];
+    return key ? t(key) : semester;
+  };
+
   const filteredTests = tests.filter((test) => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          test.subject.toLowerCase().includes(searchQuery.toLowerCase());
@@ -77,7 +122,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">データを読み込んでいます...</p>
+          <p className="text-gray-600">{t('testList.loading')}</p>
         </div>
       </div>
     );
@@ -88,11 +133,11 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center text-red-600">
           <p>{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 text-blue-600 hover:underline"
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
           >
-            再読み込み
+            {t('testList.reload')}
           </button>
         </div>
       </div>
@@ -102,31 +147,29 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ヘッダー */}
         <div className="mb-8">
           <button
             onClick={() => onNavigate('home')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
-            ホームに戻る
+            {t('testList.backToHome')}
           </button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">テスト（過去問）</h1>
-              <p className="text-gray-600 mt-2">過去のテスト問題を検索・閲覧</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('testList.title')}</h1>
+              <p className="text-gray-600 mt-2">{t('testList.subtitle')}</p>
             </div>
             <button
               onClick={onShowForm}
               className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              過去問を登録
+              {t('testList.register')}
             </button>
           </div>
         </div>
 
-        {/* 検索とフィルター */}
         <div className="bg-white rounded-xl shadow p-6 mb-8">
           <div className="grid md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
@@ -136,7 +179,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="科目名・タイトルで検索"
+                  placeholder={t('testList.search.placeholder')}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -150,7 +193,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
               >
                 {areas.map((area) => (
                   <option key={area} value={area}>
-                    {area === 'all' ? '全ての領域' : area}
+                    {getAreaLabel(area)}
                   </option>
                 ))}
               </select>
@@ -164,7 +207,7 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
               >
                 {semesters.map((semester) => (
                   <option key={semester} value={semester}>
-                    {semester === 'all' ? '全ての開講期' : semester}
+                    {getSemesterLabel(semester)}
                   </option>
                 ))}
               </select>
@@ -172,12 +215,12 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
           </div>
         </div>
 
-        {/* 検索結果 */}
         <div className="mb-4 text-gray-600">
-          {filteredTests.length}件の過去問が見つかりました
+          {language === 'ja'
+            ? `${filteredTests.length}件の過去問が見つかりました`
+            : `${filteredTests.length} exam(s) found`}
         </div>
 
-        {/* 過去問リスト */}
         <div className="space-y-4">
           {filteredTests.map((test) => (
             <div
@@ -189,44 +232,33 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {test.area}
+                      {getAreaLabel(test.area)}
                     </span>
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {test.semester}
+                      {getSemesterLabel(test.semester)}
                     </span>
-                    <span className="text-gray-500 text-sm">{test.year}年度</span>
+                    <span className="text-gray-500 text-sm">
+                      {language === 'ja' ? `${test.year}年度` : String(test.year)}
+                    </span>
                   </div>
-                  
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{test.title}</h3>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {language === 'ja' ? `${test.subject} (${test.year}年度)` : `${test.subject} (${test.year})`}
+                  </h3>
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-3">
                     <BookOpen className="w-4 h-4" />
                     <span>{test.subject}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>投稿者: {test.uploadedBy}</span>
+                    <span>{t('testList.instructor')} {test.uploadedBy || t('testList.unknown')}</span>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {test.uploadedAt}
+                      {t('testList.registeredDate')} {test.uploadedAt}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-3 ml-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-green-600">
-                      <ThumbsUp className="w-5 h-5" />
-                      <span className="font-medium">{test.upvotes}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-red-600">
-                      <ThumbsDown className="w-5 h-5" />
-                      <span className="font-medium">{test.downvotes}</span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {test.commentCount}件のコメント
-                  </div>
-                </div>
               </div>
             </div>
           ))}
