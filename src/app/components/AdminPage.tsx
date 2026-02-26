@@ -5,6 +5,7 @@ import {
   GAS_APPROVE_ENDPOINT,
   GAS_REJECT_ENDPOINT,
 } from '@/app/constants/gasAdmin';
+import { pastExamDbRows } from '@/app/constants/pastExamsDb';
 
 interface AdminPageProps {
   onBack: () => void;
@@ -100,6 +101,105 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
     return 'Google Drive 連携の初期化中です。';
   }, [driveFiles.length, driveStatus]);
+
+  const tagsByFileId = useMemo(() => {
+    const map = new Map<string, {
+      sourceSheet: 'exams' | 'assignments';
+      subject?: string;
+      instructor?: string;
+      area?: string;
+      term?: string;
+      year?: string;
+      type?: string;
+      allowedMaterialsStr?: string;
+      matchType: 'id' | 'heuristic';
+    }>();
+    for (const row of pastExamDbRows) {
+      const fileId = (row.pdf_file_id ?? '').trim();
+      if (!fileId || map.has(fileId)) continue;
+      map.set(fileId, {
+        sourceSheet: row.sourceSheet,
+        subject: row.subject?.trim(),
+        instructor: row.instructor?.trim(),
+        area: row.area?.trim(),
+        term: row.term?.trim(),
+        year: row.year?.trim(),
+        type: row.type?.trim(),
+        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
+        matchType: 'id',
+      });
+    }
+    return map;
+  }, []);
+
+  const resolvedTagsByFileId = useMemo(() => {
+    const resolved = new Map<string, {
+      sourceSheet: 'exams' | 'assignments';
+      subject?: string;
+      instructor?: string;
+      area?: string;
+      term?: string;
+      year?: string;
+      type?: string;
+      allowedMaterialsStr?: string;
+      matchType: 'id' | 'heuristic';
+    }>();
+
+    // 1) exact match by file id
+    for (const file of driveFiles) {
+      const exact = tagsByFileId.get(file.id);
+      if (exact) {
+        resolved.set(file.id, exact);
+      }
+    }
+
+    // 2) heuristic fallback: filename includes subject (+year if present)
+    for (const file of driveFiles) {
+      if (resolved.has(file.id)) continue;
+      const fileName = file.name.toLowerCase();
+
+      const candidates = pastExamDbRows.filter((row) => {
+        const subject = (row.subject ?? '').trim().toLowerCase();
+        if (!subject || !fileName.includes(subject)) return false;
+
+        const rawYear = (row.year ?? '').trim();
+        const year = rawYear.endsWith('.0') ? rawYear.slice(0, -2) : rawYear;
+        if (!year) return true;
+        return fileName.includes(year);
+      });
+
+      if (candidates.length !== 1) continue;
+      const row = candidates[0];
+      resolved.set(file.id, {
+        sourceSheet: row.sourceSheet,
+        subject: row.subject?.trim(),
+        instructor: row.instructor?.trim(),
+        area: row.area?.trim(),
+        term: row.term?.trim(),
+        year: row.year?.trim(),
+        type: row.type?.trim(),
+        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
+        matchType: 'heuristic',
+      });
+    }
+
+    return resolved;
+  }, [driveFiles, tagsByFileId]);
+
+  const examFiles = useMemo(
+    () => driveFiles.filter((file) => resolvedTagsByFileId.get(file.id)?.sourceSheet === 'exams'),
+    [driveFiles, resolvedTagsByFileId]
+  );
+
+  const assignmentFiles = useMemo(
+    () => driveFiles.filter((file) => resolvedTagsByFileId.get(file.id)?.sourceSheet === 'assignments'),
+    [driveFiles, resolvedTagsByFileId]
+  );
+
+  const uncategorizedFiles = useMemo(
+    () => driveFiles.filter((file) => !resolvedTagsByFileId.has(file.id)),
+    [driveFiles, resolvedTagsByFileId]
+  );
 
   const handleApprove = async (file: DriveFile) => {
     if (!GAS_APPROVE_ENDPOINT) {
@@ -225,6 +325,120 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }
   };
 
+  const renderFileRow = (file: DriveFile) => {
+    const tag = resolvedTagsByFileId.get(file.id);
+    return (
+      <div key={file.id} className="p-6">
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
+              {file.mimeType === 'application/vnd.google-apps.folder' ? (
+                <FolderOpen className="w-4 h-4" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              <span className="font-medium text-gray-900">{file.name}</span>
+              <span className="text-gray-400">•</span>
+              <span>{formatBytes(file.size)}</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                <span>{formatDateTime(file.modifiedTime)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Cloud className="w-4 h-4" />
+                <span>Google Drive</span>
+              </div>
+            </div>
+            {tag && (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                {tag.matchType === 'heuristic' && (
+                  <span className="px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
+                    推定一致
+                  </span>
+                )}
+                {tag.subject && (
+                  <span className="px-2 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                    科目: {tag.subject}
+                  </span>
+                )}
+                {tag.instructor && (
+                  <span className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    教員: {tag.instructor}
+                  </span>
+                )}
+                {tag.area && (
+                  <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    領域: {tag.area}
+                  </span>
+                )}
+                {tag.term && (
+                  <span className="px-2 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                    開講期: {tag.term}
+                  </span>
+                )}
+                {tag.year && (
+                  <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    年度: {tag.year}
+                  </span>
+                )}
+                {tag.type && (
+                  <span className="px-2 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    状態: {tag.type}
+                  </span>
+                )}
+                {tag.allowedMaterialsStr && (
+                  <span className="px-2 py-1 rounded-full bg-slate-50 text-slate-700 border border-slate-200">
+                    持込: {tag.allowedMaterialsStr}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="w-fit flex flex-col items-stretch gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleApprove(file)}
+                disabled={approvingFileIds.includes(file.id)}
+                className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
+              >
+                {approvingFileIds.includes(file.id) ? '承認中...' : '承認'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleReject(file)}
+                disabled={rejectingFileIds.includes(file.id)}
+                className="text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+              >
+                {rejectingFileIds.includes(file.id) ? '削除中...' : '拒否'}
+              </button>
+            </div>
+            {file.webViewLink ? (
+              <a
+                href={file.webViewLink}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full text-center text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                開く
+              </a>
+            ) : (
+              <button
+                className="w-full text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed"
+                disabled
+              >
+                リンクなし
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -260,98 +474,38 @@ export function AdminPage({ onBack }: AdminPageProps) {
           </details>
         </div>
 
-        <div className="bg-white rounded-xl shadow mb-8">
-          <div className="border-b px-6 py-4 flex items-center justify-between">
-            <div className="text-sm text-gray-600">Google Drive フォルダ内のファイル</div>
-            <div className="text-xs text-gray-500">更新日順</div>
-          </div>
+        {[
+          { key: 'exams', title: 'テスト一覧', files: examFiles },
+          { key: 'assignments', title: '課題一覧', files: assignmentFiles },
+          { key: 'uncategorized', title: '未分類', files: uncategorizedFiles },
+        ].map((section) => (
+          <div key={section.key} className="bg-white rounded-xl shadow mb-8">
+            <div className="border-b px-6 py-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">{section.title}</div>
+              <div className="text-xs text-gray-500">更新日順</div>
+            </div>
 
-          <div className="divide-y">
-            {driveStatus === 'missing' && (
-              <div className="p-6 text-sm text-gray-500">
-                環境変数 `VITE_GAS_DRIVE_ENDPOINT` を設定すると表示されます。
-              </div>
-            )}
-            {driveStatus === 'loading' && (
-              <div className="p-6 text-sm text-gray-500">取得中...</div>
-            )}
-            {driveStatus === 'error' && (
-              <div className="p-6 text-sm text-gray-500">
-                Google Drive の取得に失敗しました。権限設定やフォルダ共有設定を確認してください。
-              </div>
-            )}
-            {driveStatus === 'ready' && driveFiles.length === 0 && (
-              <div className="p-6 text-sm text-gray-500">フォルダ内にファイルが見つかりません。</div>
-            )}
-            {driveStatus === 'ready' &&
-              driveFiles.map((file) => (
-                <div key={file.id} className="p-6">
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 text-gray-600 text-sm mb-2">
-                        {file.mimeType === 'application/vnd.google-apps.folder' ? (
-                          <FolderOpen className="w-4 h-4" />
-                        ) : (
-                          <FileText className="w-4 h-4" />
-                        )}
-                        <span className="font-medium text-gray-900">{file.name}</span>
-                        <span className="text-gray-400">•</span>
-                        <span>{formatBytes(file.size)}</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDateTime(file.modifiedTime)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Cloud className="w-4 h-4" />
-                          <span>Google Drive</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-fit flex flex-col items-stretch gap-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(file)}
-                          disabled={approvingFileIds.includes(file.id)}
-                          className="text-sm px-4 py-2 rounded-lg border border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
-                        >
-                          {approvingFileIds.includes(file.id) ? '承認中...' : '承認'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleReject(file)}
-                          disabled={rejectingFileIds.includes(file.id)}
-                          className="text-sm px-4 py-2 rounded-lg border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
-                        >
-                          {rejectingFileIds.includes(file.id) ? '削除中...' : '拒否'}
-                        </button>
-                      </div>
-                      {file.webViewLink ? (
-                        <a
-                          href={file.webViewLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full text-center text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-                        >
-                          開く
-                        </a>
-                      ) : (
-                        <button
-                          className="w-full text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed"
-                          disabled
-                        >
-                          リンクなし
-                        </button>
-                      )}
-                    </div>
-                  </div>
+            <div className="divide-y">
+              {driveStatus === 'missing' && (
+                <div className="p-6 text-sm text-gray-500">
+                  環境変数 `VITE_GAS_DRIVE_ENDPOINT` を設定すると表示されます。
                 </div>
-              ))}
+              )}
+              {driveStatus === 'loading' && (
+                <div className="p-6 text-sm text-gray-500">取得中...</div>
+              )}
+              {driveStatus === 'error' && (
+                <div className="p-6 text-sm text-gray-500">
+                  Google Drive の取得に失敗しました。権限設定やフォルダ共有設定を確認してください。
+                </div>
+              )}
+              {driveStatus === 'ready' && section.files.length === 0 && (
+                <div className="p-6 text-sm text-gray-500">{section.title}に表示できるファイルがありません。</div>
+              )}
+              {driveStatus === 'ready' && section.files.map((file) => renderFileRow(file))}
+            </div>
           </div>
-        </div>
+        ))}
 
       </div>
     </div>
