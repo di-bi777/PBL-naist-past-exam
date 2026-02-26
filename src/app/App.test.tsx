@@ -26,6 +26,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 const renderApp = (initialPath = '/') =>
@@ -98,11 +99,30 @@ describe('App routing', () => {
     expect(screen.getByRole('heading', { name: '課題を登録' })).toBeInTheDocument()
   })
 
-  it('renders AssignmentDetail at /assignments/:id', () => {
+  it('renders AssignmentDetail at /assignments/:id', async () => {
+    vi.stubEnv('VITE_GAS_DISPLAY_ENDPOINT', 'https://test.example.com')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        status: 'success',
+        data: {
+          id: 'A001',
+          subject: 'Advanced Algorithms',
+          lecture_no: '3',
+          area: 'Information',
+          term: 'spring',
+          year: 2024,
+          file_url: '',
+          created_at: '',
+        },
+      }),
+    }))
     renderApp('/assignments/A001')
-    expect(
-      screen.getByRole('heading', { name: 'データ構造とアルゴリズムのレポート課題' }),
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { level: 1, name: 'Advanced Algorithms (第3回)' }),
+      ).toBeInTheDocument()
+    })
   })
 
   it('renders AdminPage at /admin', async () => {

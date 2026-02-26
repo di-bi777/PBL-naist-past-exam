@@ -224,10 +224,20 @@ describe('AdminPage', () => {
     })
   })
 
-  it('shows alert when admin token is empty during rejection (covers token guard)', async () => {
-    // No sessionStorage token → prompt returns empty → adminToken is '' → alert
+  it('rejection succeeds without admin token in sessionStorage (token guard removed)', async () => {
+    // No sessionStorage.setItem('admin_api_token', ...) — token is no longer required
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
-    vi.stubGlobal('prompt', vi.fn().mockReturnValue(''))
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify({ files: mockFiles })),
+      })
+      .mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify({ status: 'success' })),
+      })
+    vi.stubGlobal('fetch', fetchMock)
 
     renderAdminPage()
     await waitFor(() => {
@@ -237,7 +247,7 @@ describe('AdminPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: '拒否' })[0])
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('管理者トークンが未入力です。')
+      expect(screen.queryByText('exam_2024_cs.pdf')).not.toBeInTheDocument()
     })
   })
 
