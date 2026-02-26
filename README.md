@@ -9,12 +9,23 @@
 
   Run `npm run dev` to start the development server.
 
-  ## 管理者画面からファイルを移動させるには
+  ## 管理者画面のGAS連携設定
 
-  .envファイルに以下の行を追加
-  
-VITE_GAS_DRIVE_ENDPOINT={doGet(Pending)のデプロイURL}
+  フロント側は `.env` なしでも動かせます。
+  その場合は `src/app/constants/gasAdmin.ts` の `DEFAULT_NETLIFY_FUNCTIONS_BASE` を Netlify のURLに変更してください。
 
-VITE_GAS_APPROVE_ENDPOINT={approve_pending_fileのデプロイURL}
+  `.env` で上書きしたい場合は以下です。
 
-VITE_GAS_REJECT_ENDPOINT={reject_pending_fileのデプロイURL}
+VITE_NETLIFY_FUNCTIONS_BASE={NetlifyサイトURL 例: https://xxxxx.netlify.app}
+
+  GAS の実URLは Netlify 側の環境変数で管理します。
+
+GAS_DRIVE_ENDPOINT={doGet(Pending)のデプロイURL}
+
+GAS_APPROVE_ENDPOINT={approve_pending_fileのデプロイURL}
+
+GAS_REJECT_ENDPOINT={reject_pending_fileのデプロイURL}
+
+GAS_DB_ENDPOINT={doGet(DB)のデプロイURL}
+
+ADMIN_API_TOKEN={承認/拒否で使う管理者トークン}
