@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { GAS_DISPLAY_ENDPOINT } from '../constants/gas';
+import { areaOptions, termOptions } from '../constants/options';
 
 interface Test {
   id: string;
@@ -25,6 +26,9 @@ interface TestListProps {
 }
 
 const areaToTranslationKey: Record<string, string> = {
+  Information: 'area.Information',
+  Biological: 'area.Biological',
+  Materials: 'area.Materials',
   '情報科学領域': 'area.Information',
   'バイオサイエンス領域': 'area.Biological',
   '物質創生科学領域': 'area.Materials',
@@ -32,6 +36,8 @@ const areaToTranslationKey: Record<string, string> = {
 };
 
 const semesterToTranslationKey: Record<string, string> = {
+  spring: 'term.spring',
+  fall: 'term.fall',
   '春学期': 'term.spring',
   '秋学期': 'term.fall',
 };
@@ -100,26 +106,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
     }
   }, [GAS_DISPLAY_ENDPOINT]);
 
-  // ★ 修正ポイント3: スプレッドシートに入っている生の値（または key）に合わせて選択肢を定義
-  // もし options.ts を使っているなら、そちらを import して使う方がより安全です
-  const areas = [
-    { value: 'all', label: '全ての領域' },
-    { value: 'is', label: '情報科学領域' },
-    { value: 'bs', label: 'バイオサイエンス領域' },
-    { value: 'ms', label: '物質創成科学領域' },
-    // 英語表記など、スプシの実態に合わせて追加・修正してください
-    { value: '情報科学領域', label: '情報科学領域(直接)' },
-    { value: 'バイオサイエンス領域', label: 'バイオサイエンス領域(直接)' },
-    { value: '物質創成科学領域', label: '物質創成科学領域(直接)' }
-  ];
-  
-  const semesters = [
-    { value: 'all', label: '全ての開講期' },
-    { value: 'spring', label: '春学期' },
-    { value: 'fall', label: '秋学期' },
-    { value: '春学期', label: '春学期(直接)' },
-    { value: '秋学期', label: '秋学期(直接)' }
-  ];
+  const areas = [{ key: 'all' }, ...areaOptions];
+  const semesters = [{ key: 'all' }, ...termOptions];
 
   const getAreaLabel = (area: string) => {
     if (area === 'all') return t('testList.area.all');
@@ -219,8 +207,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {areas.map((area) => (
-                  <option key={area.value} value={area.value}>
-                    {getAreaLabel(area.value)}
+                  <option key={area.key} value={area.key}>
+                    {getAreaLabel(area.key)}
                   </option>
                 ))}
               </select>
@@ -233,8 +221,8 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               >
                 {semesters.map((semester) => (
-                  <option key={semester.value} value={semester.value}>
-                    {getSemesterLabel(semester.value)}
+                  <option key={semester.key} value={semester.key}>
+                    {getSemesterLabel(semester.key)}
                   </option>
                 ))}
               </select>

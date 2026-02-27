@@ -24,6 +24,9 @@ interface AssignmentDetailData {
 }
 
 const areaToTranslationKey: Record<string, string> = {
+  Information: 'area.Information',
+  Biological: 'area.Biological',
+  Materials: 'area.Materials',
   '情報科学領域': 'area.Information',
   'バイオサイエンス領域': 'area.Biological',
   '物質創生科学領域': 'area.Materials',
@@ -31,6 +34,8 @@ const areaToTranslationKey: Record<string, string> = {
 };
 
 const semesterToTranslationKey: Record<string, string> = {
+  spring: 'term.spring',
+  fall: 'term.fall',
   '春学期': 'term.spring',
   '秋学期': 'term.fall',
 };
