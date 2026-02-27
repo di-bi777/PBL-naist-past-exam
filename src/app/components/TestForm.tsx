@@ -10,6 +10,7 @@ interface TestFormProps {
 }
 
 export function TestForm({ onNavigate, previousPage }: TestFormProps) {
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
   const { t, language } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -33,6 +34,10 @@ export function TestForm({ onNavigate, previousPage }: TestFormProps) {
     e.preventDefault();
     if (!file) {
       alert(language === 'ja' ? 'ファイルをアップロードしてください' : 'Please upload a file');
+      return;
+    }
+    if (file.size >= MAX_FILE_SIZE_BYTES) {
+      alert(language === 'ja' ? 'ファイルサイズは10MB未満にしてください' : 'File size must be under 10MB');
       return;
     }
 
