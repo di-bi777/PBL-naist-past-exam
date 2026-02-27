@@ -1,11 +1,11 @@
 export const GAS_DRIVE_ENDPOINT =
-  'https://script.google.com/macros/s/AKfycbxkUP8mHxPPhjErsPfGoqujWnjswyqxRHFDVvaDNYIs2GbxIULpsi1MaWE9njy22lVj/exec';
+  'https://script.google.com/macros/s/AKfycbwgHEhfboX-rgH2IxxlYavN5s74x-AclbO07a57lUHZ1_CaYU81SB9QccKSO8nb8JNr/exec';
 
 export const GAS_APPROVE_ENDPOINT =
-  'https://script.google.com/macros/s/AKfycbw9128Y54EpEKkjgU-vo8GWsIpq4AxC_3zI0XKxq7Tcsth9ppxfFg1KtfYMp6x1tJaY/exec';
+  'https://script.google.com/macros/s/AKfycbzFXBZR8Yfb3LpurPHL0aTJtvnzHtB9kPNdJBJ5oHKinsk9Ujiwr7P9Nt1cMv92drg3kw/exec';
 
 export const GAS_REJECT_ENDPOINT =
-  'https://script.google.com/macros/s/AKfycbynRSBFmIQU05U9ysAmbR4K201bxh8O8i7KE2abLQvNrt3h2kNUNy8XkLE1o1dHm2WH/exec';
+  'https://script.google.com/macros/s/AKfycbxqH1wCETJOSrBlw72bMeR1iDZBHU8TWyKEhFmKsI_YzaGElFGm3HBzscGfkPFG64rG/exec';
 
 export const GAS_DB_ENDPOINT =
   'https://script.google.com/macros/s/AKfycbz82oLtCK3eqpzWBEhbIYyL0ur8nm9dC-JJZukY9eBL0opwhg_DQwZjhSLpJi9Q4J_n/exec';

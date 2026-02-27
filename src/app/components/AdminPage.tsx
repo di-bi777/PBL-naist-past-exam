@@ -6,7 +6,6 @@ import {
   GAS_APPROVE_ENDPOINT,
   GAS_REJECT_ENDPOINT,
 } from '@/app/constants/gasAdmin';
-import { pastExamDbRows } from '@/app/constants/pastExamsDb';
 
 interface AdminPageProps {
   onBack: () => void;
@@ -49,12 +48,12 @@ const formatDateTime = (value?: string, locale = 'ja-JP') => {
 export function AdminPage({ onBack }: AdminPageProps) {
   const { t, language } = useLanguage();
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
+  const [dbRows, setDbRows] = useState<any[]>([]); 
   const [driveStatus, setDriveStatus] = useState<'idle' | 'loading' | 'ready' | 'error' | 'missing'>('idle');
   const [driveError, setDriveError] = useState<string>('');
   const [driveRaw, setDriveRaw] = useState<string>('');
   const [approvingFileIds, setApprovingFileIds] = useState<string[]>([]);
   const [rejectingFileIds, setRejectingFileIds] = useState<string[]>([]);
-
 
   useEffect(() => {
     if (!GAS_DRIVE_ENDPOINT) {
@@ -64,18 +63,29 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
     const endpoint = GAS_DRIVE_ENDPOINT;
     const controller = new AbortController();
+    
     const fetchDriveFiles = async () => {
       setDriveStatus('loading');
       setDriveError('');
       try {
-        const res = await fetch(endpoint, { signal: controller.signal });
+        // キャッシュを無視して常に最新データを取得する
+        const urlWithCacheBuster = `${endpoint}${endpoint.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+        const res = await fetch(urlWithCacheBuster, { 
+          signal: controller.signal,
+          cache: 'no-store' 
+        });
+        
         const text = await res.text();
         setDriveRaw(text.slice(0, 1500));
+        
         if (!res.ok) {
           throw new Error(`GAS endpoint error: ${res.status} ${text}`);
         }
-        const data = JSON.parse(text) as { files?: DriveFile[] };
+        
+        const data = JSON.parse(text) as { files?: DriveFile[], dbRows?: any[] };
         setDriveFiles(data.files ?? []);
+        setDbRows(data.dbRows ?? []);
+        
         setDriveStatus('ready');
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -88,7 +98,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
     fetchDriveFiles();
     return () => controller.abort();
-  }, []);
+  }, [language]);
 
   const driveSummary = useMemo(() => {
     if (driveStatus === 'missing') return t('admin.drive.missing');
@@ -96,56 +106,39 @@ export function AdminPage({ onBack }: AdminPageProps) {
     if (driveStatus === 'error') return t('admin.drive.error');
     if (driveStatus === 'ready') {
       return language === 'ja'
-        ? `Google Drive 連携済み。${driveFiles.length}件のファイルを表示中。`
-        : `Connected to Google Drive. Displaying ${driveFiles.length} file(s).`;
+        ? `Google Drive 連携済み。ファイル ${driveFiles.length}件 / DBデータ ${dbRows.length}件 を表示中。`
+        : `Connected to Google Drive. Displaying ${driveFiles.length} file(s) and ${dbRows.length} DB records.`;
     }
     return t('admin.drive.init');
-  }, [driveFiles.length, driveStatus, t, language]);
+  }, [driveFiles.length, dbRows.length, driveStatus, t, language]);
 
   const tagsByFileId = useMemo(() => {
-    const map = new Map<string, {
-      sourceSheet: 'exams' | 'assignments';
-      subject?: string;
-      instructor?: string;
-      area?: string;
-      term?: string;
-      year?: string;
-      type?: string;
-      allowedMaterialsStr?: string;
-      matchType: 'id' | 'heuristic';
-    }>();
-    for (const row of pastExamDbRows) {
-      const fileId = (row.pdf_file_id ?? '').trim();
+    const map = new Map<string, any>();
+    
+    for (const row of dbRows) {
+      // ★エラー防止：どんなデータ型（数字・真偽値）が来ても絶対に文字列に変換してから処理する
+      const fileId = String(row.pdf_file_id || row.file_id || '').trim();
       if (!fileId || map.has(fileId)) continue;
+      
       map.set(fileId, {
         sourceSheet: row.sourceSheet,
-        subject: row.subject?.trim(),
-        instructor: row.instructor?.trim(),
-        area: row.area?.trim(),
-        term: row.term?.trim(),
-        year: row.year?.trim(),
-        type: row.type?.trim(),
-        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
+        subject: String(row.subject || '').trim(),
+        instructor: String(row.instructor || '').trim(),
+        area: String(row.area || '').trim(),
+        term: String(row.term || '').trim(),
+        year: String(row.year || '').trim(),
+        type: String(row.type || '').trim(),
+        allowedMaterialsStr: String(row.allowedMaterialsStr || '').trim(),
         matchType: 'id',
       });
     }
     return map;
-  }, []);
+  }, [dbRows]);
 
   const resolvedTagsByFileId = useMemo(() => {
-    const resolved = new Map<string, {
-      sourceSheet: 'exams' | 'assignments';
-      subject?: string;
-      instructor?: string;
-      area?: string;
-      term?: string;
-      year?: string;
-      type?: string;
-      allowedMaterialsStr?: string;
-      matchType: 'id' | 'heuristic';
-    }>();
+    const resolved = new Map<string, any>();
 
-    // 1) exact match by file id
+    // 1) IDによる完全一致
     for (const file of driveFiles) {
       const exact = tagsByFileId.get(file.id);
       if (exact) {
@@ -153,16 +146,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
       }
     }
 
-    // 2) heuristic fallback: filename includes subject (+year if present)
+    // 2) 推定一致
     for (const file of driveFiles) {
       if (resolved.has(file.id)) continue;
       const fileName = file.name.toLowerCase();
 
-      const candidates = pastExamDbRows.filter((row) => {
-        const subject = (row.subject ?? '').trim().toLowerCase();
+      const candidates = dbRows.filter((row) => {
+        // ★エラー防止：文字列に変換してから処理
+        const subject = String(row.subject || '').trim().toLowerCase();
         if (!subject || !fileName.includes(subject)) return false;
 
-        const rawYear = (row.year ?? '').trim();
+        const rawYear = String(row.year || '').trim();
         const year = rawYear.endsWith('.0') ? rawYear.slice(0, -2) : rawYear;
         if (!year) return true;
         return fileName.includes(year);
@@ -172,19 +166,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
       const row = candidates[0];
       resolved.set(file.id, {
         sourceSheet: row.sourceSheet,
-        subject: row.subject?.trim(),
-        instructor: row.instructor?.trim(),
-        area: row.area?.trim(),
-        term: row.term?.trim(),
-        year: row.year?.trim(),
-        type: row.type?.trim(),
-        allowedMaterialsStr: row.allowedMaterialsStr?.trim(),
+        subject: String(row.subject || '').trim(),
+        instructor: String(row.instructor || '').trim(),
+        area: String(row.area || '').trim(),
+        term: String(row.term || '').trim(),
+        year: String(row.year || '').trim(),
+        type: String(row.type || '').trim(),
+        allowedMaterialsStr: String(row.allowedMaterialsStr || '').trim(),
         matchType: 'heuristic',
       });
     }
 
     return resolved;
-  }, [driveFiles, tagsByFileId]);
+  }, [driveFiles, tagsByFileId, dbRows]);
 
   const examFiles = useMemo(
     () => driveFiles.filter((file) => resolvedTagsByFileId.get(file.id)?.sourceSheet === 'exams'),
@@ -220,7 +214,6 @@ export function AdminPage({ onBack }: AdminPageProps) {
       const url = `${GAS_APPROVE_ENDPOINT}${GAS_APPROVE_ENDPOINT.includes('?') ? '&' : '?'}path=approve_pending_file`;
       const response = await fetch(url, {
         method: 'POST',
-        // Apps Script Web App への JSON POST は preflight で失敗しやすいため simple request で送信。
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
         },
@@ -354,7 +347,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{formatDateTime(file.modifiedTime)}</span>
+                <span>{formatDateTime(file.modifiedTime, language === 'ja' ? 'ja-JP' : 'en-US')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Cloud className="w-4 h-4" />
