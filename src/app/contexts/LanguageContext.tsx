@@ -27,8 +27,8 @@ const translations: Record<Language, Record<string, string>> = {
     'home.assignment.description': '授業の課題情報を共有・閲覧できます。過去の課題内容や注意点を確認できます。',
     'home.assignment.browse': '課題を閲覧',
     'home.assignment.register': '課題を登録',
-    'home.stats.tests': '登録過去問',
-    'home.stats.assignments': '課題情報',
+    'home.stats.tests': '登録過去問数',
+    'home.stats.assignments': '登録課題情報数',
     'home.admin.login': '管理者ログイン',
 
     // AdminPage
@@ -209,8 +209,8 @@ const translations: Record<Language, Record<string, string>> = {
     'home.assignment.description': 'Share and browse assignment information. Check past assignment details and notes.',
     'home.assignment.browse': 'Browse Assignments',
     'home.assignment.register': 'Register Assignment',
-    'home.stats.tests': 'Registered Exams',
-    'home.stats.assignments': 'Assignment Info',
+    'home.stats.tests': 'Registered Exam Count',
+    'home.stats.assignments': 'Registered Assignment Info Count',
     'home.admin.login': 'Admin Login',
 
     // AdminPage
