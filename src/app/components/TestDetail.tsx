@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, User, Calendar, BookOpen, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GAS_DISPLAY_ENDPOINT } from '../constants/gas';
 
 interface TestDetailProps {
   testId: string;
@@ -39,13 +40,10 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 先ほど設定した環境変数を使用
-  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
-
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const url = `${GAS_ENDPOINT}?path=get_exam_detail&id=${testId}`;
+        const url = `${GAS_DISPLAY_ENDPOINT}?path=get_exam_detail&id=${testId}`;
         const response = await fetch(url);
 
         if (!response.ok) throw new Error(t('testDetail.fetchError'));
@@ -83,7 +81,7 @@ export function TestDetail({ testId, onNavigate }: TestDetailProps) {
     };
 
     fetchDetail();
-  }, [testId, GAS_ENDPOINT]);
+  }, [testId, GAS_DISPLAY_ENDPOINT]);
 
   const displayArea = (area: string) => {
     const key = areaToTranslationKey[area];

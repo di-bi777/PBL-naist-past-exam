@@ -7,3 +7,7 @@ export const GAS_ENDPOINT =
 
 export const GAS_DB_ENDPOINT =
   (import.meta.env.VITE_GAS_DB_ENDPOINT as string | undefined) ?? GAS_ENDPOINT;
+
+export const GAS_DISPLAY_ENDPOINT =
+  (import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string | undefined) ??
+  'https://script.google.com/macros/s/AKfycbzp7DbzjuS4yY2z-GNzbtAf5sdcNjvyGoqKROk4spMDKj4VM6Ac_K8q-jiJWKIQlaVNbw/exec';

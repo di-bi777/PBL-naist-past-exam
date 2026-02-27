@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft, User, Loader2 } from 'lucide-react';
 import { areaOptions, termOptions } from '../constants/options';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GAS_DISPLAY_ENDPOINT } from '../constants/gas';
 
 export interface Assignment {
   id: string;
@@ -46,14 +47,11 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 先ほど設定した環境変数を使用
-  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
-
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
         // 新しく作成するGASのエンドポイントパス（assignments用）を指定
-        const url = `${GAS_ENDPOINT}?path=get_approved_assignments`;
+        const url = `${GAS_DISPLAY_ENDPOINT}?path=get_approved_assignments`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -101,7 +99,7 @@ export function AssignmentList({ onNavigate, onShowForm }: AssignmentListProps) 
     };
 
     fetchAssignments();
-  }, [GAS_ENDPOINT]);
+  }, [GAS_DISPLAY_ENDPOINT]);
 
   const getAreaLabel = (area: string) => {
     if (area === 'all') return t('assignmentList.area.all');

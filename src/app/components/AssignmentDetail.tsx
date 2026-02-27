@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, ExternalLink, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GAS_DISPLAY_ENDPOINT } from '../constants/gas';
 
 interface AssignmentDetailProps {
   assignmentId: string;
@@ -40,13 +41,10 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 環境変数からエンドポイントを取得
-  const GAS_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
-
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const url = `${GAS_ENDPOINT}?path=get_assignment_detail&id=${assignmentId}`;
+        const url = `${GAS_DISPLAY_ENDPOINT}?path=get_assignment_detail&id=${assignmentId}`;
         const response = await fetch(url);
 
         if (!response.ok) throw new Error(t('assignmentDetail.fetchError'));
@@ -88,13 +86,13 @@ export function AssignmentDetail({ assignmentId, onNavigate }: AssignmentDetailP
       }
     };
 
-    if (GAS_ENDPOINT) {
+    if (GAS_DISPLAY_ENDPOINT) {
       fetchDetail();
     } else {
       setError(t('assignmentDetail.endpointMissing'));
       setIsLoading(false);
     }
-  }, [assignmentId, GAS_ENDPOINT]);
+  }, [assignmentId, GAS_DISPLAY_ENDPOINT]);
 
   const displayArea = (area: string) => {
     const key = areaToTranslationKey[area];

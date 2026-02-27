@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Calendar, BookOpen, ArrowLeft, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { GAS_DISPLAY_ENDPOINT } from '../constants/gas';
 
 interface Test {
   id: string;
@@ -45,12 +46,10 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const GAS_EXAM_DISPLAY_ENDPOINT = import.meta.env.VITE_GAS_DISPLAY_ENDPOINT as string;
-
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const url = `${GAS_EXAM_DISPLAY_ENDPOINT}?path=get_approved_exams`;
+        const url = `${GAS_DISPLAY_ENDPOINT}?path=get_approved_exams`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -93,13 +92,13 @@ export function TestList({ onNavigate, onShowForm }: TestListProps) {
       }
     };
 
-    if (GAS_EXAM_DISPLAY_ENDPOINT) {
+    if (GAS_DISPLAY_ENDPOINT) {
         fetchTests();
     } else {
         setError('エンドポイントが設定されていません。');
         setIsLoading(false);
     }
-  }, [GAS_EXAM_DISPLAY_ENDPOINT]);
+  }, [GAS_DISPLAY_ENDPOINT]);
 
   // ★ 修正ポイント3: スプレッドシートに入っている生の値（または key）に合わせて選択肢を定義
   // もし options.ts を使っているなら、そちらを import して使う方がより安全です
